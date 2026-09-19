@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>You Claim It, You Name It: Toponymy</title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-HZWNB3WHS6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-HZWNB3WHS6');
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css">
+<style>
+  :root{
+    --ink:#1B2A3C;
+    --ink-soft:#4A5768;
+    --sheet:#EEF1EC;
+    --panel:#FFFFFF;
+    --rule:#CFD6D0;
+    --green:#2E7433;        /* header green sampled from the GeoInquiry PDF */
+    --green-dark:#1F5225;
+    --green-soft:#DDEFE0;
+    --brass:#B4842D;
+    --gold:#E0B13A;
+    --ok:#2F7D4F;
+    --ok-soft:#DDEFE3;
+    --warn:#A83A2A;
+    --warn-soft:#F5DCD7;
+    --border-soft:#F5EBC6;
+    /* language colours used on the map and in chips */
+    --fr:#3B5BA9;  --fr-soft:#DCE3F5;
+    --en:#B33A3A;  --en-soft:#F3D9D9;
+    --es:#D98A1F;  --es-soft:#F8E7CC;
+    --nl:#E4641E;  --nl-soft:#FBE1D2;
+    --pt:#2F8F6B;  --pt-soft:#D9EFE6;
+    --am:#7A4FA3;  --am-soft:#E8DDF3;
+    --sv:#3E8FB0;  --sv-soft:#D7EAF2;
+    --dk:#7A6A54;  --dk-soft:#E9E3D9;
+    --sa:#A0286F;  --sa-soft:#F2D8E6;
+    --serif:"Old Standard TT", Georgia, "Times New Roman", serif;
+    --sans:"Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif;
+    --rail:420px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:var(--sans);font-size:16px;line-height:1.5;color:var(--ink);background:var(--sheet);
+    display:flex;flex-direction:column;min-height:100vh;
+  }
+  a{color:var(--fr)}
+  button{font:inherit;cursor:pointer}
+  button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex]:focus-visible{
+    outline:3px solid var(--gold);outline-offset:2px;
+  }
+
+  /* ---------- Top bar ---------- */
+  header.topbar{
+    position:relative;
+    display:flex;align-items:center;gap:20px;
+    padding:10px 20px;padding-right:250px;
+    background:var(--green);color:#fff;
+    border-bottom:4px solid var(--green-dark);
+    flex-wrap:wrap;
+  }
+  .topbar h1{font-family:var(--serif);font-weight:700;font-size:1.35rem;line-height:1.1;margin:0;letter-spacing:.01em}
+  .topbar h1 small{display:block;font-family:var(--sans);font-weight:400;font-size:.8rem;opacity:.85;margin-top:2px}
+  .hud{margin-left:auto;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .score{font-family:var(--serif);font-size:1.5rem;line-height:1;display:flex;align-items:baseline;gap:8px}
+  .score span{font-family:var(--sans);font-size:.8rem;opacity:.9}
+  .badges{display:flex;gap:6px}
+  .badge{
+    width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.4);
+    display:grid;place-items:center;font-size:.9rem;font-family:var(--serif);font-weight:700;
+    color:rgba(255,255,255,.55);position:relative;
+  }
+  .badge.earned{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+  .badge[data-tip]:hover::after{
+    content:attr(data-tip);position:absolute;top:110%;left:50%;transform:translateX(-50%);
+    background:#fff;color:var(--ink);padding:4px 8px;border-radius:4px;font-family:var(--sans);
+    font-weight:400;font-size:.8rem;white-space:nowrap;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.2);
+  }
+  .mode-switch{
+    position:absolute;top:10px;right:20px;z-index:2;
+    display:flex;background:#F3EFE2;border-radius:999px;padding:3px;gap:2px;
+    box-shadow:0 1px 3px rgba(0,0,0,.25);
+  }
+  .mode-switch button{
+    background:transparent;color:var(--ink);border:0;padding:5px 14px;border-radius:999px;font-size:.88rem;font-weight:600;
+  }
+  .mode-switch button[aria-pressed="true"]{background:var(--green-dark);color:#fff}
+  .mode-switch button:hover:not([aria-pressed="true"]){background:rgba(0,0,0,.07)}
+  .topbar .tools{display:flex;gap:6px;flex-wrap:wrap}
+  .topbar .tools button{
+    background:transparent;color:#fff;border:1px solid rgba(255,255,255,.55);
+    padding:6px 12px;border-radius:4px;font-size:.9rem;
+  }
+  .topbar .tools button:hover{background:rgba(255,255,255,.14)}
+  body.mode-explore .hud .score,
+  body.mode-explore .hud .badges,
+  body.mode-explore .tools #btnHelp,
+  body.mode-explore .tools #btnSources,
+  body.mode-explore .tools #btnTeacher{display:none}
+  body.mode-explore .rail{display:none}
+  body.mode-explore .map-banner{display:none}
+
+  /* ---------- Main layout ---------- */
+  main{flex:1;display:flex;min-height:0}
+  .rail{
+    width:var(--rail);flex:0 0 var(--rail);background:var(--panel);border-right:1px solid var(--rule);
+    display:flex;flex-direction:column;min-height:0;
+  }
+  .rail-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:8px 16px;background:var(--green-soft);border-bottom:1px solid var(--rule);
+    font-family:var(--serif);font-weight:700;font-size:1rem;color:var(--green-dark);letter-spacing:.02em;
+  }
+  .progress{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--rule)}
+  .progress button{
+    background:none;border:0;border-bottom:4px solid transparent;padding:10px 4px 8px;font-size:.85rem;color:var(--ink-soft);
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+  }
+  .progress button b{font-family:var(--serif);font-size:1rem;color:var(--ink)}
+  .progress button.current{border-bottom-color:var(--green);color:var(--ink)}
+  .progress button.done b::after{content:" ✓";color:var(--ok)}
+  .progress button:disabled{opacity:.45;cursor:not-allowed}
+
+  .mission{flex:1;overflow:auto;padding:22px 24px 30px}
+  .mission h2{font-family:var(--serif);font-size:1.7rem;line-height:1.15;margin:0 0 4px;font-weight:700}
+  .mission .question-head{font-family:var(--serif);font-style:italic;font-size:1.15rem;color:var(--ink-soft);margin:0 0 16px}
+  .mission p{margin:0 0 12px;max-width:62ch}
+  .steps{margin:0 0 16px;padding:0;list-style:none}
+  .steps li{padding:8px 10px 8px 14px;border-left:3px solid var(--rule);margin-bottom:6px;background:#F7F8F6}
+  .steps li.active{border-left-color:var(--brass);background:var(--border-soft)}
+  .steps li.done{border-left-color:var(--ok);color:var(--ink-soft)}
+  .task{border:1px solid var(--rule);border-radius:6px;padding:16px;margin:0 0 14px;background:#fff}
+  .task h3{font-family:var(--serif);font-size:1.15rem;margin:0 0 8px;font-weight:700}
+  .task .pts{float:right;font-size:.8rem;color:var(--brass);font-weight:600}
+  .choices{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+  .choices button,.choices label{
+    text-align:left;background:#fff;border:1px solid var(--rule);border-radius:6px;padding:10px 12px;color:var(--ink);
+    line-height:1.35;display:flex;gap:10px;align-items:flex-start;
+  }
+  .choices button:hover{border-color:var(--ink);background:#F7F8F6}
+  .choices button.correct{border-color:var(--ok);background:var(--ok-soft)}
+  .choices button.wrong{border-color:var(--warn);background:var(--warn-soft)}
+  .choices button:disabled{cursor:default}
+  .choices input[type=checkbox]{margin-top:4px}
+  .choices.inline{flex-direction:row;flex-wrap:wrap}
+  .choices.inline button{padding:6px 12px}
+  .feedback{margin-top:10px;padding:10px 12px;border-radius:6px;font-size:.95rem;background:#F7F8F6;border:1px solid var(--rule)}
+  .feedback.good{background:var(--ok-soft);border-color:var(--ok)}
+  .feedback.bad{background:var(--warn-soft);border-color:var(--warn)}
+  .primary{background:var(--green-dark);color:#fff;border:0;border-radius:6px;padding:10px 16px;font-weight:600}
+  .primary:hover{background:var(--green)}
+  .primary:disabled{background:#9AA3AE;cursor:not-allowed}
+  .secondary{background:#fff;color:var(--ink);border:1px solid var(--ink);border-radius:6px;padding:9px 14px;font-weight:600}
+  .secondary:hover{background:#F7F8F6}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input[type=text],textarea{font:inherit;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;width:100%;background:#fff;color:var(--ink)}
+  textarea{min-height:130px;resize:vertical}
+  .hint{font-size:.9rem;color:var(--ink-soft)}
+  .chip{display:inline-block;padding:2px 9px;border-radius:12px;font-size:.8rem;font-weight:600}
+  .chip.fr{background:var(--fr-soft);color:var(--fr)}
+  .chip.en{background:var(--en-soft);color:var(--en)}
+  .chip.es{background:var(--es-soft);color:#8A5410}
+  .chip.am{background:var(--am-soft);color:var(--am)}
+  .chip.other{background:#EDEFEA;color:var(--ink-soft)}
+  .name-card{border-left:4px solid var(--green);padding:10px 14px;background:#F6FAF6;margin-top:10px}
+  .name-card h4{font-family:var(--serif);margin:0 0 4px;font-size:1.15rem}
+  .name-card .meta{font-size:.9rem;color:var(--ink-soft);margin-bottom:6px}
+  .summary-box{background:#F7F8F6;border:1px solid var(--rule);border-radius:6px;padding:14px;margin-top:10px}
+  .summary-box dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px}
+  .summary-box dt{color:var(--ink-soft)}
+  .summary-box dd{margin:0;font-weight:600}
+  .callout{background:var(--green-soft);border-left:4px solid var(--green);padding:10px 14px;border-radius:0 6px 6px 0;margin:0 0 14px}
+  .callout b{font-family:var(--serif)}
+
+  /* ---------- Map ---------- */
+  .mapwrap{flex:1;position:relative;min-width:0;min-height:0}
+  #viewDiv{position:absolute;inset:0}
+  .maptools{position:absolute;top:12px;right:12px;z-index:5;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+  .maptools button,.maptools select{
+    background:#fff;border:1px solid var(--rule);border-radius:6px;padding:6px 10px;font-size:.9rem;
+    box-shadow:0 1px 4px rgba(0,0,0,.15);color:var(--ink);font-family:var(--sans);
+  }
+  .maptools button.on{background:var(--green-dark);color:#fff;border-color:var(--green-dark)}
+  .maptools .grp{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);background:rgba(255,255,255,.85);padding:1px 6px;border-radius:3px;margin-top:4px}
+  .legend{
+    position:absolute;left:12px;bottom:12px;z-index:5;background:rgba(255,255,255,.95);border:1px solid var(--rule);border-radius:6px;
+    padding:10px 12px;font-size:.85rem;max-width:240px;max-height:45%;overflow:auto;
+  }
+  .legend:empty{display:none}
+  .legend h5{font-family:var(--serif);font-size:1rem;margin:0 0 6px}
+  .legend h5+div{margin-top:0}
+  .legend h5:not(:first-child){margin-top:10px}
+  .legend div{display:flex;align-items:center;gap:8px;margin:3px 0}
+  .sw{width:16px;height:12px;border:1px solid rgba(0,0,0,.25);flex:0 0 auto}
+  .sw.dot{width:12px;height:12px;border-radius:50%}
+  .sw.sq{width:12px;height:12px}
+  .sw.dia{width:12px;height:12px;transform:rotate(45deg)}
+  .sw.note{width:14px;height:14px;border-radius:3px;background:#fff;border:2px solid var(--green-dark);position:relative}
+  .map-banner{
+    position:absolute;top:12px;left:12px;z-index:5;background:var(--green-dark);color:#fff;padding:8px 14px;border-radius:6px;font-size:.95rem;
+    max-width:min(420px,60%);box-shadow:0 2px 8px rgba(0,0,0,.25);display:none;
+  }
+  .map-banner.show{display:block}
+  .map-banner b{font-family:var(--serif)}
+  .map-error{position:absolute;inset:0;display:none;place-items:center;background:var(--sheet);z-index:6;padding:20px}
+  .map-error.show{display:grid}
+  .map-error div{max-width:520px;background:#fff;border:1px solid var(--rule);border-radius:8px;padding:20px}
+
+  /* ---------- Modal ---------- */
+  .modal-back{position:fixed;inset:0;background:rgba(27,42,60,.55);z-index:100;display:none;place-items:center;padding:20px}
+  .modal-back.show{display:grid}
+  .modal{background:#fff;border-radius:8px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:26px 28px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+  .modal h2{font-family:var(--serif);margin:0 0 10px;font-size:1.6rem}
+  .modal h3{font-family:var(--serif);margin:18px 0 6px;font-size:1.15rem}
+  .modal p,.modal li{max-width:70ch}
+  .modal .close{float:right}
+  .modal table{border-collapse:collapse;width:100%;font-size:.9rem}
+  .modal td,.modal th{border-bottom:1px solid var(--rule);padding:6px 8px;text-align:left;vertical-align:top}
+  .modal code{font-size:.85em;word-break:break-all}
+  .toast{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:120;background:var(--gold);color:var(--ink);font-weight:700;
+    padding:10px 18px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .25s;pointer-events:none;
+    font-family:var(--serif);font-size:1.05rem;
+  }
+  .toast.show{opacity:1}
+
+  @media (max-width: 900px){
+    header.topbar{padding-top:48px;padding-right:20px}
+    main{flex-direction:column}
+    .rail{width:auto;flex:1 1 auto;border-right:0;border-top:1px solid var(--rule);order:2;max-height:55vh}
+    .mapwrap{order:1;height:45vh;flex:0 0 45vh}
+    .topbar h1{font-size:1.1rem}
+    .legend{max-width:180px;font-size:.78rem}
+  }
+  @media (prefers-reduced-motion: reduce){ .toast{transition:none} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>You Claim It, You Name It: Toponymy
+    <small>Based on the Esri GeoInquiries lesson for AP Human Geography</small></h1>
+  <div class="mode-switch" role="group" aria-label="Map mode">
+    <button type="button" id="modeMission" aria-pressed="true">GeoInquiry</button>
+    <button type="button" id="modeExplore" aria-pressed="false">Explore</button>
+  </div>
+  <div class="hud">
+    <div class="score"><span id="scoreVal">0</span> <span>points</span></div>
+    <div class="badges" id="badges"></div>
+    <div class="tools">
+      <button id="btnHelp" type="button">How to play</button>
+      <button id="btnSources" type="button">Sources</button>
+      <button id="btnTeacher" type="button">Teacher notes</button>
+      <button id="btnReset" type="button">Reset</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <aside class="rail" aria-label="GeoInquiry">
+    <div class="rail-head"><span>GeoInquiry</span></div>
+    <nav class="progress" id="progressNav" aria-label="GeoInquiry progress"></nav>
+    <section class="mission" id="mission" aria-live="polite"></section>
+  </aside>
+
+  <section class="mapwrap" aria-label="Map">
+    <div id="viewDiv"></div>
+    <div class="map-banner" id="mapBanner"></div>
+    <div class="maptools" id="mapTools">
+      <select id="bookmarks" aria-label="Bookmarks"></select>
+      <span class="grp">Layers</span>
+      <button type="button" data-layer="notes" class="on">Map notes</button>
+      <button type="button" data-layer="settlements">Settlements – 1655</button>
+      <button type="button" data-layer="missions">Missions</button>
+      <button type="button" data-layer="mining">Mining towns</button>
+      <button type="button" data-layer="trinidad">Trinidad toponyms</button>
+      <button type="button" data-layer="claims">Claims</button>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="map-error" id="mapError">
+      <div>
+        <h3 style="font-family:var(--serif);margin-top:0">The map could not load</h3>
+        <p>This app loads the ArcGIS Maps SDK for JavaScript from <code>js.arcgis.com</code> and basemaps from ArcGIS Online. Check that your network allows those sites, then reload. The GeoInquiry questions still work without the map, but map-based tasks will be skipped.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="modal-back" id="modalBack" role="dialog" aria-modal="true">
+  <div class="modal" id="modalBody"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://js.arcgis.com/4.30/"></script>
+<script>
+/* =====================================================================
+   DATA
+   Place-name origins below are drawn from standard references (see the
+   Sources panel). Coordinates for the substitute layers are approximate
+   town/site centres, adequate for the map scales used in the lesson.
+   ===================================================================== */
+
+// Language / colonial power palette (shared by map symbols and legend)
+const LANG = {
+  fr:{label:"French",color:"#3B5BA9"},
+  en:{label:"English",color:"#B33A3A"},
+  es:{label:"Spanish",color:"#D98A1F"},
+  nl:{label:"Dutch",color:"#E4641E"},
+  sv:{label:"Swedish",color:"#3E8FB0"},
+  pt:{label:"Portuguese",color:"#2F8F6B"},
+  dk:{label:"Danish",color:"#7A6A54"},
+  am:{label:"Amerindian (Indigenous)",color:"#7A4FA3"},
+  sa:{label:"South Asian (Hindi/Urdu)",color:"#A0286F"},
+  other:{label:"Other",color:"#6E6E6E"}
+};
+
+// Map notes (the lesson's three notes plus a few extra toponym stories)
+const NOTES = [
+  {id:"america",title:"America",lon:-101.3,lat:46.6,lesson:true,
+   text:"Named for <b>Amerigo Vespucci</b>, the Florentine navigator who argued that the lands Columbus had reached were not Asia but a separate 'New World'. The German mapmaker Martin Waldseemüller first printed the name <i>America</i> on his 1507 world map, and it stuck for both continents."},
+  {id:"pacific",title:"Pacific Ocean",lon:-128,lat:38,lesson:true,
+   text:"Ferdinand Magellan's expedition, sailing for Spain, entered this ocean in 1520 after a stormy passage through the strait that now bears his name. Finding calm water, they called it <b>Mar Pacífico</b> — <b>Spanish</b> for 'peaceful sea'."},
+  {id:"westindies",title:"West Indies",lon:-80,lat:23.4,lesson:true,
+   text:"Columbus believed in 1492 that he had reached the <b>Indies</b> (islands off the coast of Asia), so he called the people he met 'Indians'. When Europeans realised the islands lay in a different ocean, they became the <i>West</i> Indies to distinguish them from the East Indies."},
+  {id:"canada",title:"Canada",lon:-95,lat:56,text:"From the St. Lawrence Iroquoian word <b>kanata</b>, 'village' or 'settlement'. In 1535 Jacques Cartier heard it used for the village of Stadacona (today's Québec City) and applied it to the whole region."},
+  {id:"mexico",title:"Mexico",lon:-102,lat:24,text:"From <b>Nahuatl</b>, the language of the Aztecs: <i>Mēxihco</i> was the heartland of the Mexica people around Tenochtitlan. The Spanish kept the Indigenous name for their colony and its capital."},
+  {id:"brazil",title:"Brazil",lon:-52,lat:-10,text:"<b>Portuguese</b>: named for <i>pau-brasil</i> (brazilwood), a tree whose red dye was the colony's first export. The name of a natural resource replaced the earlier 'Land of the Holy Cross'."},
+  {id:"florida",title:"Florida",lon:-81.7,lat:28.3,text:"<b>Spanish</b>: Juan Ponce de León landed in 1513 during <i>Pascua Florida</i>, the Easter 'festival of flowers', and named the land for the holiday — a religious toponym."},
+  {id:"louisiana",title:"Louisiana",lon:-92.5,lat:31,text:"<b>French</b>: <i>La Louisiane</i>, named in 1682 by René-Robert Cavelier de La Salle for King <b>Louis XIV</b>. Colonial toponyms often honoured monarchs and patrons."},
+  {id:"virginia",title:"Virginia",lon:-78.5,lat:37.6,text:"<b>English</b>: named in 1584 for Queen <b>Elizabeth I</b>, the 'Virgin Queen'. Like Louisiana for the French, it stamps the sponsoring monarch on the map."},
+  {id:"novascotia",title:"Nova Scotia",lon:-63.3,lat:45.2,text:"<b>Latin</b> for 'New Scotland', from a 1621 royal charter to Sir William Alexander. The French had called the same region <i>Acadie</i> (Acadia) — two names for one contested place."}
+];
+
+// Settlements existing by 1655, by colonial power (substitute for the lesson's "Settlements - 1655" layer)
+const SETTLEMENTS = [
+  {name:"Québec",power:"fr",founded:1608,lon:-71.208,lat:46.813,note:"Founded by Samuel de Champlain; capital of New France. From Algonquin kébec, 'where the river narrows'."},
+  {name:"Trois-Rivières",power:"fr",founded:1634,lon:-72.543,lat:46.343,note:"French: 'three rivers', where the Saint-Maurice River enters the St. Lawrence."},
+  {name:"Ville-Marie (Montréal)",power:"fr",founded:1642,lon:-73.554,lat:45.508,note:"A Catholic missionary settlement, 'city of Mary'; the mountain Mont Royal gave the later name Montréal."},
+  {name:"Tadoussac",power:"fr",founded:1600,lon:-69.716,lat:48.144,note:"Fur-trading post at the mouth of the Saguenay; from an Innu word for 'breasts' (the rounded hills)."},
+  {name:"Port-Royal (Acadia)",power:"fr",founded:1605,lon:-65.612,lat:44.712,note:"First French settlement in Acadia; French: 'royal port'."},
+  {name:"Jamestown",power:"en",founded:1607,lon:-76.777,lat:37.209,note:"First permanent English settlement; named for King James I."},
+  {name:"Kecoughtan (Hampton)",power:"en",founded:1610,lon:-76.345,lat:37.030,note:"An Algonquian town name kept by the English; renamed Hampton in 1680 for the Earl of Southampton."},
+  {name:"Cupids",power:"en",founded:1610,lon:-53.221,lat:47.548,note:"Cuper's Cove, Newfoundland: the first English colony in Canada."},
+  {name:"Plymouth",power:"en",founded:1620,lon:-70.667,lat:41.958,note:"Named (before the Pilgrims arrived) for Plymouth, England, the port they sailed from."},
+  {name:"Ferryland",power:"en",founded:1621,lon:-52.882,lat:47.023,note:"George Calvert's Avalon colony in Newfoundland."},
+  {name:"Portsmouth",power:"en",founded:1623,lon:-70.763,lat:43.072,note:"New Hampshire; named for the English naval port."},
+  {name:"Salem",power:"en",founded:1626,lon:-70.897,lat:42.519,note:"From the Hebrew shalom, 'peace' — a religious toponym chosen by Puritan settlers."},
+  {name:"Boston",power:"en",founded:1630,lon:-71.058,lat:42.360,note:"Named for Boston, Lincolnshire, home of several Puritan leaders."},
+  {name:"St. Mary's City",power:"en",founded:1634,lon:-76.433,lat:38.187,note:"First capital of Maryland, founded by Catholic colonists; religious toponym."},
+  {name:"Hartford",power:"en",founded:1636,lon:-72.685,lat:41.764,note:"Named for Hertford, England; the Dutch had built Fort Goede Hoop here in 1633."},
+  {name:"Providence",power:"en",founded:1636,lon:-71.413,lat:41.824,note:"Roger Williams named it for 'God's merciful providence' — a religious toponym."},
+  {name:"Springfield",power:"en",founded:1636,lon:-72.590,lat:42.101,note:"Named by William Pynchon for his home village in Essex, England."},
+  {name:"New Haven",power:"en",founded:1638,lon:-72.928,lat:41.308,note:"English descriptive name: a new harbour."},
+  {name:"Newport",power:"en",founded:1639,lon:-71.313,lat:41.490,note:"Rhode Island; English descriptive name."},
+  {name:"New Amsterdam",power:"nl",founded:1625,lon:-74.011,lat:40.706,note:"Dutch West India Company town on Manhattan; renamed New York by the English in 1664."},
+  {name:"Fort Orange / Beverwijck",power:"nl",founded:1624,lon:-73.757,lat:42.652,note:"Dutch fur-trading post; renamed Albany in 1664 for the Duke of York and Albany."},
+  {name:"Wiltwyck (Kingston)",power:"nl",founded:1652,lon:-74.010,lat:41.927,note:"Dutch settlement on the Hudson; renamed Kingston by the English."},
+  {name:"Fort Casimir (New Castle)",power:"nl",founded:1651,lon:-75.566,lat:39.662,note:"Dutch fort on the Delaware, later English New Castle."},
+  {name:"Fort Christina (Wilmington)",power:"sv",founded:1638,lon:-75.545,lat:39.737,note:"Capital of New Sweden, named for Sweden's Queen Christina; captured by the Dutch in 1655."},
+  {name:"St. Augustine",power:"es",founded:1565,lon:-81.312,lat:29.898,note:"Oldest continuously occupied European settlement in the U.S.; named for the saint's feast day when Florida was sighted."},
+  {name:"Santa Fe",power:"es",founded:1610,lon:-105.938,lat:35.687,note:"Spanish: 'holy faith'; capital of New Mexico."},
+  {name:"Havana (La Habana)",power:"es",founded:1519,lon:-82.359,lat:23.135,note:"Spanish port; the name is of Taíno origin."},
+  {name:"Santo Domingo",power:"es",founded:1496,lon:-69.931,lat:18.486,note:"Oldest continuously inhabited European settlement in the Americas; named for Saint Dominic."},
+  {name:"San Juan",power:"es",founded:1521,lon:-66.106,lat:18.466,note:"Puerto Rico; named for Saint John the Baptist."}
+];
+
+// The 21 Spanish missions of Alta California (substitute for the lesson's "Missions" layer)
+const MISSIONS = [
+  {n:"San Diego de Alcalá",y:1769,lon:-117.106,lat:32.757,m:"Saint Didacus of Alcalá"},
+  {n:"San Carlos Borromeo de Carmelo",y:1770,lon:-121.919,lat:36.543,m:"Saint Charles Borromeo, at Carmel"},
+  {n:"San Antonio de Padua",y:1771,lon:-121.250,lat:36.015,m:"Saint Anthony of Padua"},
+  {n:"San Gabriel Arcángel",y:1771,lon:-118.107,lat:34.097,m:"Saint Gabriel the Archangel"},
+  {n:"San Luis Obispo de Tolosa",y:1772,lon:-120.664,lat:35.281,m:"Saint Louis, Bishop of Toulouse"},
+  {n:"San Francisco de Asís (Dolores)",y:1776,lon:-122.427,lat:37.764,m:"Saint Francis of Assisi"},
+  {n:"San Juan Capistrano",y:1776,lon:-117.663,lat:33.502,m:"Saint John of Capistrano"},
+  {n:"Santa Clara de Asís",y:1777,lon:-121.940,lat:37.349,m:"Saint Clare of Assisi"},
+  {n:"San Buenaventura",y:1782,lon:-119.297,lat:34.281,m:"Saint Bonaventure"},
+  {n:"Santa Bárbara",y:1786,lon:-119.714,lat:34.438,m:"Saint Barbara"},
+  {n:"La Purísima Concepción",y:1787,lon:-120.421,lat:34.672,m:"The Immaculate Conception"},
+  {n:"Santa Cruz",y:1791,lon:-122.028,lat:36.977,m:"Holy Cross"},
+  {n:"Nuestra Señora de la Soledad",y:1791,lon:-121.359,lat:36.401,m:"Our Lady of Solitude"},
+  {n:"San José",y:1797,lon:-121.920,lat:37.532,m:"Saint Joseph"},
+  {n:"San Juan Bautista",y:1797,lon:-121.537,lat:36.845,m:"Saint John the Baptist"},
+  {n:"San Miguel Arcángel",y:1797,lon:-120.696,lat:35.746,m:"Saint Michael the Archangel"},
+  {n:"San Fernando Rey de España",y:1797,lon:-118.462,lat:34.273,m:"Saint Ferdinand, King of Spain"},
+  {n:"San Luis Rey de Francia",y:1798,lon:-117.320,lat:33.232,m:"Saint Louis, King of France"},
+  {n:"Santa Inés",y:1804,lon:-120.137,lat:34.594,m:"Saint Agnes"},
+  {n:"San Rafael Arcángel",y:1817,lon:-122.531,lat:37.974,m:"Saint Raphael the Archangel"},
+  {n:"San Francisco Solano (Sonoma)",y:1823,lon:-122.457,lat:38.294,m:"Saint Francis Solano"}
+];
+
+// Gold Rush-era mining towns of California (substitute for the lesson's "Mining Towns" layer)
+const MINING = [
+  {n:"Coloma",lang:"am",lon:-120.890,lat:38.800,m:"Nisenan (Maidu) village name; site of the 1848 gold discovery at Sutter's Mill."},
+  {n:"Placerville",lang:"es",lon:-120.798,lat:38.730,m:"From Spanish placer, a surface gold deposit; earlier nicknamed Hangtown."},
+  {n:"El Dorado",lang:"es",lon:-120.845,lat:38.685,m:"Spanish: 'the gilded one', the legendary land of gold."},
+  {n:"Sutter Creek",lang:"en",lon:-120.802,lat:38.393,m:"For John Sutter, the Swiss-born landowner whose mill started the Gold Rush."},
+  {n:"Jackson",lang:"en",lon:-120.774,lat:38.349,m:"For Colonel Alden Jackson, an early settler."},
+  {n:"Volcano",lang:"en",lon:-120.631,lat:38.443,m:"English descriptive name; miners thought the valley was a crater."},
+  {n:"Fiddletown",lang:"en",lon:-120.755,lat:38.503,m:"English folk name for the miners' fiddle-playing."},
+  {n:"Mokelumne Hill",lang:"am",lon:-120.706,lat:38.300,m:"From a Miwok village name on the Mokelumne River."},
+  {n:"Murphys",lang:"en",lon:-120.461,lat:38.138,m:"For the Irish-American Murphy brothers who set up a trading post in 1848."},
+  {n:"Angels Camp",lang:"en",lon:-120.540,lat:38.068,m:"For Henry Angel, who opened a store here in 1848."},
+  {n:"Columbia",lang:"en",lon:-120.401,lat:38.036,m:"A patriotic name for the United States (from Columbus)."},
+  {n:"Sonora",lang:"es",lon:-120.382,lat:37.984,m:"Named by miners from Sonora, Mexico."},
+  {n:"Chinese Camp",lang:"other",lon:-120.435,lat:37.870,m:"Named for the thousands of Chinese miners who worked here."},
+  {n:"Mariposa",lang:"es",lon:-119.966,lat:37.485,m:"Spanish: 'butterfly', from the swarms seen by a 1806 expedition."},
+  {n:"Auburn",lang:"en",lon:-121.077,lat:38.896,m:"Named by miners from Auburn, New York."},
+  {n:"Dutch Flat",lang:"en",lon:-120.838,lat:39.205,m:"'Dutch' was miners' slang for the German prospectors who settled here."},
+  {n:"Grass Valley",lang:"en",lon:-121.061,lat:39.219,m:"English descriptive name for the meadow the miners found."},
+  {n:"Nevada City",lang:"es",lon:-121.016,lat:39.262,m:"Spanish nevada, 'snow-covered'."},
+  {n:"Rough and Ready",lang:"en",lon:-121.135,lat:39.228,m:"For 'Old Rough and Ready', General Zachary Taylor's nickname."},
+  {n:"Downieville",lang:"en",lon:-120.826,lat:39.559,m:"For Major William Downie, a Scottish-born prospector."},
+  {n:"Oroville",lang:"es",lon:-121.556,lat:39.514,m:"Spanish oro, 'gold', with the French/English suffix -ville, 'town'."},
+  {n:"French Gulch",lang:"fr",lon:-122.637,lat:40.702,m:"Named for the French miners who worked the ravine (a lesson 'Next steps' example)."},
+  {n:"Shasta",lang:"am",lon:-122.492,lat:40.599,m:"For the Shasta people of northern California."},
+  {n:"Weaverville",lang:"en",lon:-122.941,lat:40.731,m:"For John Weaver, an 1849 prospector."},
+  {n:"Yreka",lang:"am",lon:-122.634,lat:41.735,m:"From a Shasta word usually glossed as 'north mountain' (Mount Shasta)."},
+  {n:"Bodie",lang:"en",lon:-119.012,lat:38.212,m:"For W. S. Bodey, who found gold here in 1859; a ghost town today."}
+];
+
+// Trinidad and Tobago place names by language of origin (substitute for the lesson's "Trinidad Toponyms" layer)
+const TRINIDAD = [
+  // Spanish
+  {n:"San Fernando",lang:"es",lon:-61.46,lat:10.28,m:"Saint Ferdinand; Trinidad's second city, founded 1784."},
+  {n:"San Juan",lang:"es",lon:-61.45,lat:10.65,m:"Saint John."},
+  {n:"Sangre Grande",lang:"es",lon:-61.13,lat:10.59,m:"'Big blood' (a river name)."},
+  {n:"Rio Claro",lang:"es",lon:-61.18,lat:10.31,m:"'Clear river'."},
+  {n:"Diego Martin",lang:"es",lon:-61.55,lat:10.72,m:"For an early Spanish settler."},
+  {n:"Las Cuevas",lang:"es",lon:-61.40,lat:10.78,m:"'The caves'."},
+  {n:"Cedros",lang:"es",lon:-61.82,lat:10.09,m:"'Cedars'."},
+  {n:"Manzanilla",lang:"es",lon:-61.03,lat:10.53,m:"'Little apple' (the manchineel tree)."},
+  {n:"Santa Cruz",lang:"es",lon:-61.45,lat:10.70,m:"'Holy cross'."},
+  {n:"El Socorro",lang:"es",lon:-61.43,lat:10.64,m:"'The help / succour' (Our Lady of Succour)."},
+  {n:"Valencia",lang:"es",lon:-61.20,lat:10.65,m:"For Valencia, Spain."},
+  {n:"La Brea",lang:"es",lon:-61.62,lat:10.24,m:"'The tar', beside the Pitch Lake."},
+  {n:"Palo Seco",lang:"es",lon:-61.60,lat:10.10,m:"'Dry stick'."},
+  {n:"Port of Spain",lang:"es",lon:-61.52,lat:10.66,m:"English rendering of Spanish Puerto de España; the capital."},
+  // French
+  {n:"Blanchisseuse",lang:"fr",lon:-61.30,lat:10.79,m:"'Washerwoman'."},
+  {n:"Sans Souci",lang:"fr",lon:-61.02,lat:10.79,m:"'Without worry'."},
+  {n:"Matelot",lang:"fr",lon:-61.10,lat:10.82,m:"'Sailor'."},
+  {n:"Grande Rivière",lang:"fr",lon:-61.05,lat:10.83,m:"'Big river'."},
+  {n:"Champs Fleurs",lang:"fr",lon:-61.42,lat:10.66,m:"'Flowered fields'."},
+  {n:"Pointe-à-Pierre",lang:"fr",lon:-61.47,lat:10.32,m:"'Peter's point'."},
+  {n:"Basse Terre",lang:"fr",lon:-61.28,lat:10.13,m:"'Low land'."},
+  {n:"Lopinot",lang:"fr",lon:-61.32,lat:10.69,m:"For the Comte de Lopinot, a French planter from Saint-Domingue."},
+  {n:"Carenage",lang:"fr",lon:-61.60,lat:10.68,m:"'Careening place' where ships were repaired."},
+  {n:"Morne Diablo",lang:"fr",lon:-61.44,lat:10.10,m:"'Devil hill' (Creole French morne, 'hill')."},
+  {n:"Bonasse",lang:"fr",lon:-61.86,lat:10.08,m:"French: 'easy-going, calm'."},
+  {n:"Bon Accord (Tobago)",lang:"fr",lon:-60.82,lat:11.16,m:"'Good agreement'."},
+  // English
+  {n:"Princes Town",lang:"en",lon:-61.37,lat:10.27,m:"Renamed in 1880 for a visit by Princes Albert Victor and George."},
+  {n:"Point Fortin",lang:"en",lon:-61.68,lat:10.17,m:"English point plus a French/Spanish surname."},
+  {n:"Chatham",lang:"en",lon:-61.75,lat:10.08,m:"For Chatham, England."},
+  {n:"Williamsville",lang:"en",lon:-61.34,lat:10.28,m:"English personal name plus -ville."},
+  {n:"Freeport",lang:"en",lon:-61.42,lat:10.45,m:"English descriptive name."},
+  {n:"Erin",lang:"en",lon:-61.65,lat:10.07,m:"Poetic name for Ireland, given by settlers."},
+  {n:"Scarborough (Tobago)",lang:"en",lon:-60.74,lat:11.18,m:"Tobago's capital; for Scarborough, England."},
+  {n:"Plymouth (Tobago)",lang:"en",lon:-60.78,lat:11.22,m:"For Plymouth, England."},
+  {n:"Roxborough (Tobago)",lang:"en",lon:-60.58,lat:11.25,m:"Scottish/English place name."},
+  {n:"Charlotteville (Tobago)",lang:"en",lon:-60.55,lat:11.32,m:"English personal name plus -ville."},
+  // Amerindian
+  {n:"Arima",lang:"am",lon:-61.28,lat:10.64,m:"Arawak: 'water'."},
+  {n:"Chaguanas",lang:"am",lon:-61.41,lat:10.52,m:"For the Chaguanes, an Indigenous people."},
+  {n:"Tunapuna",lang:"am",lon:-61.39,lat:10.65,m:"Amerindian origin."},
+  {n:"Couva",lang:"am",lon:-61.45,lat:10.42,m:"Amerindian river name."},
+  {n:"Guayaguayare",lang:"am",lon:-61.02,lat:10.14,m:"Amerindian origin."},
+  {n:"Mayaro",lang:"am",lon:-61.00,lat:10.29,m:"Amerindian origin."},
+  {n:"Caroni",lang:"am",lon:-61.40,lat:10.60,m:"Amerindian river name (also the Caroní in Venezuela)."},
+  {n:"Chacachacare",lang:"am",lon:-61.75,lat:10.69,m:"Amerindian island name."},
+  {n:"Carapichaima",lang:"am",lon:-61.44,lat:10.45,m:"Amerindian origin."},
+  {n:"Piarco",lang:"am",lon:-61.34,lat:10.60,m:"Amerindian origin; site of the international airport."},
+  {n:"Tacarigua",lang:"am",lon:-61.37,lat:10.65,m:"Amerindian origin."},
+  {n:"Arouca",lang:"am",lon:-61.34,lat:10.63,m:"Arouca people (Arawak)."},
+  {n:"Curepe",lang:"am",lon:-61.41,lat:10.64,m:"Amerindian origin."},
+  {n:"Mucurapo",lang:"am",lon:-61.53,lat:10.66,m:"Amerindian origin."},
+  {n:"Toco",lang:"am",lon:-60.95,lat:10.83,m:"Amerindian origin."},
+  {n:"Siparia",lang:"am",lon:-61.51,lat:10.14,m:"Amerindian origin."},
+  {n:"Moruga",lang:"am",lon:-61.27,lat:10.08,m:"Amerindian origin."},
+  {n:"Cumuto",lang:"am",lon:-61.20,lat:10.58,m:"Amerindian origin."},
+  {n:"Tamana",lang:"am",lon:-61.20,lat:10.47,m:"Amerindian origin."},
+  {n:"Icacos",lang:"am",lon:-61.92,lat:10.05,m:"Taíno (via Spanish) icaco, the cocoplum."},
+  // South Asian (after indentured migration, 1845 onward)
+  {n:"Fyzabad",lang:"sa",lon:-61.55,lat:10.18,m:"For Faizabad, India — named by or for indentured labourers."},
+  {n:"Barrackpore",lang:"sa",lon:-61.44,lat:10.20,m:"For Barrackpore (Barrackpur), near Kolkata, India."}
+];
+
+// European claims in the Americas, about 1750 (generalized, schematic polygons)
+const CLAIMS = [
+  {power:"es",name:"New Spain (Spanish)",ring:[[-124.5,42],[-114,42],[-109,37],[-103,37],[-100,34],[-94,32],[-94,29.7],[-97.2,26],[-97.6,22],[-96,19],[-92,18.5],[-90.5,21.3],[-87,21.5],[-88.2,18.5],[-88.2,15.9],[-85,16],[-83.2,15],[-83.5,11],[-82,9],[-79.5,9.5],[-77.3,8.5],[-78,7],[-81,7.5],[-85.5,10],[-87.5,13],[-91.5,14],[-95,15.8],[-105,20],[-106,23],[-110,23],[-109.5,27],[-112,28.5],[-114.5,31.5],[-117.2,32.5],[-120.5,34.5],[-122.5,37.5],[-124.5,40.5]]},
+  {power:"es",name:"Spanish Florida",ring:[[-87.5,31],[-81.5,31],[-81.3,30],[-80,26.5],[-80.5,25],[-81.8,24.6],[-83,29],[-85,29.7],[-87.5,30.4]]},
+  {power:"es",name:"Spanish South America",ring:[[-77.3,8.5],[-75,11],[-72,12.2],[-68,11.5],[-63,10.8],[-60.5,8.5],[-60,5],[-60,2],[-67,1],[-70,-4],[-73,-7],[-70,-10],[-65,-11],[-60,-14],[-58,-17],[-57,-20],[-56,-23],[-55,-27],[-53,-30],[-52,-33],[-54,-34.7],[-57,-38],[-62,-39],[-65,-45],[-68,-50],[-68,-55],[-75,-52],[-74,-45],[-73,-40],[-72,-35],[-71,-30],[-70,-18],[-76,-14],[-77,-12],[-81,-5],[-80,0],[-78,3],[-77.5,7]]},
+  {power:"pt",name:"Brazil (Portuguese)",ring:[[-60,5],[-52,4],[-50,0],[-44,-2],[-38,-4],[-35,-5],[-35,-10],[-39,-15],[-41,-22],[-48,-26],[-52,-33],[-53,-30],[-55,-27],[-56,-23],[-57,-20],[-58,-17],[-60,-14],[-65,-11],[-70,-10],[-73,-7],[-70,-4],[-67,1],[-60,2]]},
+  {power:"fr",name:"New France & Louisiana (French)",ring:[[-79,52],[-70,50],[-66,49.5],[-64.5,48.5],[-66,47],[-70,45.5],[-73,45],[-76,44],[-79,43.2],[-81,42],[-79.5,40],[-80,38],[-83,36],[-88,33],[-91,31],[-94,29.7],[-94,32],[-96,34],[-100,36],[-102,40],[-104,44],[-104,48],[-98,50],[-90,50],[-85,51]]},
+  {power:"fr",name:"Île Royale (French)",ring:[[-61.5,45.5],[-59.7,45.9],[-60.3,47],[-61.3,46.6]]},
+  {power:"fr",name:"Saint-Domingue (French)",ring:[[-74.5,18.3],[-72,18.1],[-71.7,19.8],[-73.4,19.9]]},
+  {power:"fr",name:"French Guiana",ring:[[-54.5,2.2],[-51.6,4.2],[-52.5,5.2],[-54.3,5.6]]},
+  {power:"en",name:"Thirteen Colonies (British)",ring:[[-67,45],[-70.8,43],[-70,41.5],[-74,39.5],[-75.5,35],[-77,34],[-79.5,33],[-81.3,31],[-84,31],[-84,33],[-83,36],[-80,38],[-79.5,40],[-81,42],[-79,43.2],[-76,44],[-73,45],[-70,45.5]]},
+  {power:"en",name:"Nova Scotia (British)",ring:[[-66.2,44.5],[-63.5,44.4],[-61,45.4],[-61.5,46.3],[-63,45.8],[-64.5,45.4],[-66,45.2]]},
+  {power:"en",name:"Newfoundland (British)",ring:[[-59.5,47.6],[-55.5,46.7],[-52.6,47.2],[-53.5,48.5],[-55.5,49.5],[-56,51.5],[-59,50.5]]},
+  {power:"en",name:"Rupert's Land (British, Hudson's Bay Company)",ring:[[-85,51],[-90,50],[-98,50],[-104,48],[-110,50],[-112,55],[-105,60],[-95,63],[-85,65],[-70,62],[-65,58],[-70,55],[-75,52],[-79,52]]},
+  {power:"en",name:"British Honduras (Belize)",ring:[[-89.2,18.5],[-88.2,18.5],[-88.2,15.9],[-89.2,15.9]]},
+  {power:"nl",name:"Dutch Guiana",ring:[[-60.5,8.5],[-58,6.8],[-55,6],[-54.3,5.6],[-54.5,2.2],[-57,2],[-59,3],[-60,5]]}
+];
+const ISLAND_CLAIMS = [
+  {n:"Cuba",power:"es",lon:-79.5,lat:21.8},{n:"Puerto Rico",power:"es",lon:-66.5,lat:18.2},{n:"Santo Domingo",power:"es",lon:-70.2,lat:18.8},{n:"Trinidad",power:"es",lon:-61.3,lat:10.4},{n:"Margarita",power:"es",lon:-64,lat:11},
+  {n:"Jamaica",power:"en",lon:-77.3,lat:18.1},{n:"Bahamas",power:"en",lon:-77,lat:24.5},{n:"Barbados",power:"en",lon:-59.55,lat:13.15},{n:"Antigua",power:"en",lon:-61.8,lat:17.1},{n:"St. Kitts & Nevis",power:"en",lon:-62.7,lat:17.3},{n:"Bermuda",power:"en",lon:-64.75,lat:32.3},
+  {n:"Martinique",power:"fr",lon:-61,lat:14.65},{n:"Guadeloupe",power:"fr",lon:-61.55,lat:16.2},{n:"St. Lucia (contested)",power:"fr",lon:-60.97,lat:13.9},{n:"Grenada",power:"fr",lon:-61.68,lat:12.1},
+  {n:"Curaçao",power:"nl",lon:-68.95,lat:12.15},{n:"St. Eustatius",power:"nl",lon:-62.98,lat:17.5},
+  {n:"St. Thomas & St. Croix",power:"dk",lon:-64.8,lat:17.9}
+];
+
+// Bookmarks (lon/lat extents), matching the names used in the lesson
+const BOOKMARKS = [
+  {name:"Americas (start)",xmin:-140,ymin:-58,xmax:-30,ymax:72},
+  {name:"Eastern Canada",xmin:-80,ymin:43.5,xmax:-55,ymax:52},
+  {name:"East Coast",xmin:-85,ymin:29,xmax:-55,ymax:50},
+  {name:"California-Local",xmin:-123.5,ymin:32.3,xmax:-116,ymax:38.6},
+  {name:"California-Regional",xmin:-125,ymin:32,xmax:-114,ymax:42.5},
+  {name:"West Indies",xmin:-88,ymin:9.5,xmax:-58,ymax:28},
+  {name:"Trinidad",xmin:-62.1,ymin:9.95,xmax:-60.4,ymax:11.4},
+  {name:"European Claims",xmin:-130,ymin:-58,xmax:-30,ymax:72}
+];
+
+// "Name detective" decks: language of origin for names visible on the basemap
+const DETECTIVE = {
+  canada:[
+    {n:"Trois-Rivières",lang:"fr",why:"French: 'three rivers'."},
+    {n:"Halifax",lang:"en",why:"English: for the Earl of Halifax."},
+    {n:"Québec",lang:"am",why:"Algonquin kébec, 'where the river narrows'."},
+    {n:"Charlottetown",lang:"en",why:"English: for Queen Charlotte."},
+    {n:"Rivière-du-Loup",lang:"fr",why:"French: 'wolf river'."},
+    {n:"Ottawa",lang:"am",why:"For the Odawa (Algonquian) people, 'traders'."},
+    {n:"Sainte-Anne-de-Beaupré",lang:"fr",why:"French, and religious: Saint Anne."},
+    {n:"Toronto",lang:"am",why:"Mohawk tkaronto, 'where trees stand in the water'."},
+    {n:"Fredericton",lang:"en",why:"English: for Prince Frederick."},
+    {n:"Gaspé",lang:"am",why:"Mi'kmaq gespeg, 'land's end'."}
+  ],
+  california:[
+    {n:"Los Angeles",lang:"es",why:"Spanish: 'the angels' (Our Lady Queen of the Angels) — religious."},
+    {n:"Sacramento",lang:"es",why:"Spanish: 'sacrament' — religious."},
+    {n:"Bakersfield",lang:"en",why:"English: Thomas Baker's field — land use."},
+    {n:"Fresno",lang:"es",why:"Spanish: 'ash tree'."},
+    {n:"Tahoe",lang:"am",why:"Washo dá'aw, 'the lake'."},
+    {n:"Oakland",lang:"en",why:"English: land of oaks — vegetation/land use."},
+    {n:"Merced",lang:"es",why:"Spanish: 'mercy' (Our Lady of Mercy) — religious."},
+    {n:"Yosemite",lang:"am",why:"Miwok origin."},
+    {n:"Stockton",lang:"en",why:"English: for Commodore Robert F. Stockton."},
+    {n:"Eureka",lang:"other",why:"Greek: 'I have found it' — California's motto."}
+  ],
+  westindies:[
+    {n:"Puerto Rico",lang:"es",why:"Spanish: 'rich port'."},
+    {n:"Jamaica",lang:"am",why:"Taíno Xaymaca, 'land of wood and water'."},
+    {n:"Trinidad",lang:"es",why:"Spanish: 'Trinity' — religious."},
+    {n:"Haiti",lang:"am",why:"Taíno Ayiti, 'mountainous land'."},
+    {n:"Guadeloupe",lang:"es",why:"Spanish: for Our Lady of Guadalupe — religious."},
+    {n:"Barbados",lang:"pt",why:"Portuguese os barbados, 'the bearded ones' (fig trees)."},
+    {n:"Cuba",lang:"am",why:"Taíno origin."},
+    {n:"Antigua",lang:"es",why:"Spanish: Santa María la Antigua — religious."}
+  ]
+};
+
+/* =====================================================================
+   GAME STATE
+   ===================================================================== */
+const BADGES = [
+  {id:"ask",letter:"1",name:"Namer",section:"Ask"},
+  {id:"acquire",letter:"2",name:"Surveyor",section:"Acquire"},
+  {id:"explore",letter:"3",name:"Padre",section:"Explore"},
+  {id:"analyze",letter:"4",name:"Islander",section:"Analyze"},
+  {id:"act",letter:"5",name:"Cartographer",section:"Act"}
+];
+const MISSIONS_ORDER = ["ask","acquire","explore","analyze","act"];
+const MISSION_TITLES = {ask:"Ask",acquire:"Acquire",explore:"Explore",analyze:"Analyze",act:"Act"};
+const PREFIX = {ask:"ask",acquire:"acq",explore:"exp",analyze:"ana",act:"act"};
+
+let state = load() || {score:0,badges:[],mission:"ask",done:{},answers:{},tasks:{},streak:0};
+
+function load(){ try{ const s=localStorage.getItem("toponymyState"); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function save(){ try{ localStorage.setItem("toponymyState",JSON.stringify(state)); }catch(e){} }
+function award(points,label){
+  state.score+=points; save();
+  document.getElementById("scoreVal").textContent=state.score;
+  if(points>0) toast(`+${points} ${label||"points"}`);
+}
+function taskDone(id){ return !!state.tasks[id]; }
+function markTask(id,points,label){
+  if(state.tasks[id]) return false;
+  state.tasks[id]=true; save(); award(points,label); updateFinishBlock(); return true;
+}
+function earnBadge(id){
+  if(state.badges.includes(id)) return;
+  state.badges.push(id); state.done[id]=true; save();
+  renderBadges(); renderProgress();
+  const b=BADGES.find(x=>x.id===id); toast(`Badge earned: ${b.name}`);
+}
+function toast(msg){
+  const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2200);
+}
+function badgeStatus(b){
+  if(state.badges.includes(b.id)) return "complete";
+  const started=b.id===state.mission||Object.keys(state.tasks).some(t=>t.startsWith(PREFIX[b.id]));
+  return started?"in progress":"not started";
+}
+function renderBadges(){
+  const el=document.getElementById("badges"); el.innerHTML="";
+  BADGES.forEach(b=>{
+    const d=document.createElement("div");
+    d.className="badge"+(state.badges.includes(b.id)?" earned":"");
+    const tip=`${b.letter}: ${b.section} ${badgeStatus(b)}`;
+    d.textContent=b.letter; d.setAttribute("data-tip",tip); d.setAttribute("aria-label",tip);
+    el.appendChild(d);
+  });
+  document.getElementById("scoreVal").textContent=state.score;
+}
+function renderProgress(){
+  const nav=document.getElementById("progressNav"); nav.innerHTML="";
+  MISSIONS_ORDER.forEach((m,i)=>{
+    const b=document.createElement("button"); b.type="button";
+    const unlocked=i===0||state.done[MISSIONS_ORDER[i-1]];
+    b.innerHTML=`<b>${i+1}</b>${MISSION_TITLES[m]}`;
+    b.className=(m===state.mission?"current ":"")+(state.done[m]?"done":"");
+    b.disabled=!unlocked;
+    b.addEventListener("click",()=>{ state.mission=m; save(); renderMission(); });
+    nav.appendChild(b);
+  });
+}
+
+/* =====================================================================
+   MAP
+   The five lesson layers load live from the GeoInquiry web map's ArcGIS
+   Online services. If any service fails to load, the app swaps in the
+   built-in substitute layer for it (see DATA above and the Sources panel).
+   ===================================================================== */
+const map={ready:false,failed:false,view:null,layers:{},live:{},fallback:{},values:{},modules:null,clickHandler:null,openedNotes:{}};
+
+const SERVICES = {
+  settlements:{url:"https://services.arcgis.com/BG6nSlhZSAWtExvp/arcgis/rest/services/EarlyEuroSettlements/FeatureServer/0",title:"Settlements – 1655",field:"ROOT",shape:"circle"},
+  missions:{url:"https://services.arcgis.com/BG6nSlhZSAWtExvp/arcgis/rest/services/CaliMissions/FeatureServer/0",title:"Missions",shape:"cross"},
+  mining:{url:"https://services.arcgis.com/BG6nSlhZSAWtExvp/arcgis/rest/services/CaliMiningTowns/FeatureServer/0",title:"Mining towns",shape:"diamond"},
+  trinidad:{url:"https://services.arcgis.com/BG6nSlhZSAWtExvp/arcgis/rest/services/TrinidadToponyms/FeatureServer/0",title:"Trinidad toponyms",field:"ROOT",shape:"circle"},
+  claims:{url:"https://services.arcgis.com/BG6nSlhZSAWtExvp/arcgis/rest/services/Euro_Colonizer_Land_Claims_c_1700/FeatureServer/0",title:"Claims",field:"UNDIS_COLONIZER",shape:"square"}
+};
+
+// Map a colonial power / root-language value from the services to our palette key
+function clsOf(v){
+  const s=String(v||"").toLowerCase();
+  if(/french|france/.test(s)) return "fr";
+  if(/english|england|brit|great britain|uk/.test(s)) return "en";
+  if(/spanish|spain|castil/.test(s)) return "es";
+  if(/dutch|netherland|holland/.test(s)) return "nl";
+  if(/swed/.test(s)) return "sv";
+  if(/portug|brazil/.test(s)) return "pt";
+  if(/dan(ish|mark)/.test(s)) return "dk";
+  if(/native|amerind|indigenous|indian|arawak|carib|taino|taíno|aztec|nahuatl|maya|inca/.test(s)) return "am";
+  if(/hindi|urdu|indian|south asian|east indian/.test(s)) return "sa";
+  return "other";
+}
+const nameOf=a=>a.name||a.NAME||a.Name||"";
+const clsFrom=a=>a.cls||clsOf(a.ROOT||a.UNDIS_COLONIZER||a.root||"");
+const rootLabel=a=>a.lang||a.power||a.ROOT||a.UNDIS_COLONIZER||"";
+const esc=s=>String(s==null?"":s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const findByName=(arr,key,n)=>{ const t=String(n||"").toLowerCase().replace(/^mission\s+/,"").trim(); return arr.find(x=>{const v=String(x[key]).toLowerCase(); return v===t||v.startsWith(t)||t.startsWith(v);}); };
+
+function initMap(){
+  if(typeof require!=="function"){ mapFailed(); return; }
+  require([
+    "esri/Map","esri/views/MapView","esri/layers/GraphicsLayer","esri/layers/FeatureLayer","esri/Graphic",
+    "esri/geometry/Point","esri/geometry/Polygon","esri/geometry/Extent","esri/geometry/support/webMercatorUtils","esri/core/reactiveUtils"
+  ], function(Map,MapView,GraphicsLayer,FeatureLayer,Graphic,Point,Polygon,Extent,wmUtils,reactiveUtils){
+    try{
+      const pt=(lon,lat)=>new Point({longitude:lon,latitude:lat});
+      const label=(lon,lat,text,color,size,yoff)=>new Graphic({geometry:pt(lon,lat),
+        symbol:{type:"text",color:color||"#1B2A3C",haloColor:"#fff",haloSize:2,text,yoffset:yoff==null?10:yoff,
+                font:{size:size||10,family:"Source Sans 3",weight:"bold"}}});
+      const hex2rgba=(hx,a)=>{const n=parseInt(hx.slice(1),16);return [(n>>16)&255,(n>>8)&255,n&255,a];};
+      const marker=(style,color,size)=>style==="cross"
+        ?{type:"simple-marker",style:"cross",size:size||12,color,outline:{color,width:3}}
+        :{type:"simple-marker",style,size:size||10,color,outline:{color:"#fff",width:1.2}};
+
+      // ---- Map notes (client-side) ----
+      const notes=new GraphicsLayer({title:"Map notes"});
+      NOTES.forEach(n=>{
+        notes.add(new Graphic({geometry:pt(n.lon,n.lat),
+          symbol:{type:"simple-marker",style:"square",size:16,color:[255,255,255,.95],outline:{color:"#1F5225",width:2.5}},
+          attributes:{id:n.id,title:n.title,text:n.text},
+          popupTemplate:{title:"{title}",content:"{text}"}}));
+        notes.add(label(n.lon,n.lat,n.title,"#1F5225",11,-14));
+      });
+
+      // ---- Built-in substitute layers (used only if a live service fails) ----
+      const fb={};
+      fb.settlements=new GraphicsLayer({title:"Settlements – 1655",visible:false});
+      SETTLEMENTS.forEach(s=>fb.settlements.add(new Graphic({geometry:pt(s.lon,s.lat),symbol:marker("circle",LANG[s.power].color),
+        attributes:{name:s.name,power:LANG[s.power].label,founded:s.founded,note:s.note,cls:s.power},
+        popupTemplate:{title:"{name}",content:"<b>{power}</b> settlement, founded {founded}<br>{note}"}})));
+      fb.missions=new GraphicsLayer({title:"Missions",visible:false});
+      MISSIONS.forEach(m=>fb.missions.add(new Graphic({geometry:pt(m.lon,m.lat),symbol:marker("cross","#8A5410"),
+        attributes:{name:"Mission "+m.n,year:m.y,meaning:m.m},
+        popupTemplate:{title:"{name}",content:"Founded {year}. Named for <b>{meaning}</b> — a religious (Spanish, Roman Catholic) toponym."}})));
+      fb.mining=new GraphicsLayer({title:"Mining towns",visible:false});
+      MINING.forEach(m=>fb.mining.add(new Graphic({geometry:pt(m.lon,m.lat),symbol:marker("diamond",LANG[m.lang].color,11),
+        attributes:{name:m.n,lang:LANG[m.lang].label,meaning:m.m,cls:m.lang},
+        popupTemplate:{title:"{name}",content:"Name origin: <b>{lang}</b><br>{meaning}"}})));
+      fb.trinidad=new GraphicsLayer({title:"Trinidad toponyms",visible:false});
+      TRINIDAD.forEach(t=>{
+        fb.trinidad.add(new Graphic({geometry:pt(t.lon,t.lat),symbol:marker("circle",LANG[t.lang].color),
+          attributes:{name:t.n,lang:LANG[t.lang].label,meaning:t.m,cls:t.lang},
+          popupTemplate:{title:"{name}",content:"Language of origin: <b>{lang}</b><br>{meaning}"}}));
+        fb.trinidad.add(label(t.lon,t.lat,t.n,LANG[t.lang].color,9,9));
+      });
+      fb.claims=new GraphicsLayer({title:"Claims",visible:false});
+      CLAIMS.forEach(c=>fb.claims.add(new Graphic({geometry:new Polygon({rings:[c.ring]}),
+        symbol:{type:"simple-fill",color:hex2rgba(LANG[c.power].color,.38),outline:{color:LANG[c.power].color,width:1.2}},
+        attributes:{name:c.name,power:LANG[c.power].label,cls:c.power},
+        popupTemplate:{title:"{name}",content:"Claimed by: <b>{power}</b> (about 1750; boundaries generalized)."}})));
+      ISLAND_CLAIMS.forEach(i=>fb.claims.add(new Graphic({geometry:pt(i.lon,i.lat),symbol:marker("circle",LANG[i.power].color,9),
+        attributes:{name:i.n,power:LANG[i.power].label,cls:i.power},
+        popupTemplate:{title:"{name}",content:"Claimed by: <b>{power}</b> (about 1750)."}})));
+
+      // ---- Live layers from the GeoInquiry web map ----
+      const live={};
+      live.settlements=new FeatureLayer({url:SERVICES.settlements.url,title:SERVICES.settlements.title,visible:false,outFields:["*"],
+        popupTemplate:{title:"{NAME}",content:(ev)=>{const a=ev.graphic.attributes; const s=findByName(SETTLEMENTS,"name",a.NAME);
+          return `Founded <b>${esc(a.YEAR)}</b> · Root language: <b>${esc(a.ROOT)}</b>${s?"<br>"+s.note:""}`;}}});
+      live.missions=new FeatureLayer({url:SERVICES.missions.url,title:SERVICES.missions.title,visible:false,outFields:["*"],
+        renderer:{type:"simple",symbol:marker("cross","#8A5410")},
+        popupTemplate:{title:"{NAME}",content:(ev)=>{const a=ev.graphic.attributes; const m=findByName(MISSIONS,"n",a.NAME);
+          return `Founded <b>${esc(a.DATE)}</b>${a.FOUNDER?" by "+esc(a.FOUNDER):""}.${a.NAME_NOW?" Today: "+esc(a.NAME_NOW)+".":""}${m?` Named for <b>${m.m}</b> — a religious (Spanish, Roman Catholic) toponym.`:""}`;}}});
+      live.mining=new FeatureLayer({url:SERVICES.mining.url,title:SERVICES.mining.title,visible:false,outFields:["*"],
+        renderer:{type:"simple",symbol:marker("diamond","#B33A3A",11)},
+        popupTemplate:{title:"{NAME}",content:(ev)=>{const a=ev.graphic.attributes; const m=findByName(MINING,"n",a.NAME);
+          return `Mining town${a.YEAR?", "+esc(a.YEAR):""}.${m?` Name origin: <b>${LANG[m.lang].label}</b> — ${m.m}`:""}`;}}});
+      live.trinidad=new FeatureLayer({url:SERVICES.trinidad.url,title:SERVICES.trinidad.title,visible:false,outFields:["*"],
+        labelingInfo:[{labelExpressionInfo:{expression:"$feature.NAME"},symbol:{type:"text",color:"#1B2A3C",haloColor:"#fff",haloSize:1.5,font:{size:9,family:"Source Sans 3",weight:"bold"}},labelPlacement:"above-right"}],
+        popupTemplate:{title:"{NAME}",content:(ev)=>{const a=ev.graphic.attributes; const t=findByName(TRINIDAD,"n",a.NAME);
+          return `Language of origin: <b>${esc(a.ROOT)}</b>${t?"<br>"+t.m:""}`;}}});
+      live.claims=new FeatureLayer({url:SERVICES.claims.url,title:SERVICES.claims.title,visible:false,outFields:["*"],opacity:.75,
+        popupTemplate:{title:"{NAME}",content:"Claimed by: <b>{UNDIS_COLONIZER}</b> (about 1700)."}});
+
+      // Unique-value renderers for the live layers are built from the values actually in each service
+      function styleLive(key){
+        const L=live[key], f=SERVICES[key].field; if(!f) return Promise.resolve();
+        return L.queryFeatures({where:"1=1",outFields:[f],returnGeometry:false,returnDistinctValues:true}).then(res=>{
+          const vals=[...new Set(res.features.map(x=>x.attributes[f]).filter(v=>v!=null&&String(v).trim()!==""))];
+          map.values[key]=vals.map(v=>({value:v,cls:clsOf(v)}));
+          const poly=L.geometryType==="polygon";
+          L.renderer={type:"unique-value",field:f,
+            uniqueValueInfos:vals.map(v=>{const c=LANG[clsOf(v)].color; return {value:v,label:String(v),
+              symbol:poly?{type:"simple-fill",color:hex2rgba(c,.45),outline:{color:c,width:1}}:marker(SERVICES[key].shape,c)};}),
+            defaultSymbol:poly?{type:"simple-fill",color:[110,110,110,.35],outline:{color:"#6E6E6E",width:1}}:marker(SERVICES[key].shape,"#6E6E6E")};
+          renderLegend();
+        }).catch(err=>{ console.warn("Could not read values for",key,err&&err.message); map.values[key]=[{value:"Features (service default symbol)",cls:"other"}]; renderLegend(); });
+      }
+
+      const game=new GraphicsLayer({title:"Game markers"});
+      const m=new Map({basemap:"topo-vector",layers:[live.claims,live.settlements,live.missions,live.mining,live.trinidad,notes,game]});
+      const view=new MapView({container:"viewDiv",map:m,center:[-85,25],zoom:3,
+        constraints:{minZoom:2,maxZoom:14},popup:{dockEnabled:false,dockOptions:{buttonEnabled:false}}});
+
+      map.view=view; map.layers={notes,settlements:live.settlements,missions:live.missions,mining:live.mining,trinidad:live.trinidad,claims:live.claims,game};
+      map.live=live; map.modules={Graphic,Point,Extent,wmUtils};
+
+      // Load each live service; swap in the substitute if one fails
+      Object.keys(live).forEach(key=>{
+        live[key].load().then(()=>styleLive(key)).catch(err=>{
+          console.warn("Layer unavailable, using built-in substitute:",key,err&&err.message);
+          const vis=live[key].visible;
+          m.remove(live[key]); fb[key].visible=vis; m.add(fb[key],key==="claims"?0:m.layers.indexOf(notes));
+          map.layers[key]=fb[key]; map.fallback[key]=true; renderLegend();
+        });
+      });
+
+      view.when(()=>{
+        map.ready=true;
+        document.getElementById("mapError").classList.remove("show");
+        renderMission();
+        reactiveUtils.watch(()=>view.popup&&view.popup.selectedFeature,(g)=>{
+          if(g&&g.layer===notes&&g.attributes&&g.attributes.id){
+            map.openedNotes[g.attributes.id]=true;
+            if(typeof map.onNoteOpen==="function") map.onNoteOpen(g.attributes.id);
+          }
+        });
+      },(err)=>{ console.error(err); mapFailed(); });
+
+      view.on("click",(ev)=>{ if(map.clickHandler) map.clickHandler(ev); });
+      wireMapTools(); renderLegend();
+    }catch(e){ console.error(e); mapFailed(); }
+  }, function(err){ console.error(err); mapFailed(); });
+}
+function mapFailed(){ document.getElementById("mapError").classList.add("show"); map.ready=false; map.failed=true; renderMission(); }
+
+function setLayer(name,on){
+  const btn=document.querySelector(`#mapTools button[data-layer="${name}"]`);
+  if(btn) btn.classList.toggle("on",on);
+  if(map.layers[name]) map.layers[name].visible=on;
+  renderLegend();
+}
+function allLayers(on){ ["notes","settlements","missions","mining","trinidad","claims"].forEach(n=>setLayer(n,on)); }
+function wireMapTools(){
+  document.querySelectorAll("#mapTools button[data-layer]").forEach(b=>{
+    b.addEventListener("click",()=>{ const n=b.dataset.layer; setLayer(n,!(map.layers[n]&&map.layers[n].visible)); });
+  });
+}
+const bmSel=document.getElementById("bookmarks");
+bmSel.innerHTML=`<option value="">Bookmarks…</option>`+BOOKMARKS.map((b,i)=>`<option value="${i}">${b.name}</option>`).join("");
+bmSel.addEventListener("change",()=>{ if(bmSel.value!==""){ goBookmark(BOOKMARKS[+bmSel.value].name); } });
+function goBookmark(name){
+  const b=BOOKMARKS.find(x=>x.name===name); if(!b||!map.ready) return;
+  const ext=new map.modules.Extent({xmin:b.xmin,ymin:b.ymin,xmax:b.xmax,ymax:b.ymax,spatialReference:{wkid:4326}});
+  map.view.goTo(ext).catch(()=>{});
+  bmSel.value=String(BOOKMARKS.indexOf(b));
+}
+function banner(html){
+  const b=document.getElementById("mapBanner"); if(!html){b.classList.remove("show");b.innerHTML="";return;}
+  b.innerHTML=html; b.classList.add("show");
+}
+function langRows(keys,shape){
+  return keys.map(k=>`<div><span class="sw ${shape}" style="background:${LANG[k].color}"></span>${LANG[k].label}</div>`).join("");
+}
+function liveRows(key,shape){
+  const vals=map.values[key]; if(!vals) return `<div class="hint">Loading…</div>`;
+  return vals.map(v=>`<div><span class="sw ${shape}" style="background:${LANG[v.cls].color}"></span>${esc(v.value)}</div>`).join("");
+}
+function renderLegend(){
+  const L=document.getElementById("legend"); const rows=[];
+  const on=(n)=>map.layers[n]&&map.layers[n].visible;
+  const fbk=(n)=>map.fallback[n];
+  if(on("notes")) rows.push(`<h5>Map notes</h5><div><span class="sw note"></span>Click a note to read it</div>`);
+  if(on("settlements")) rows.push(`<h5>Settlements – 1655</h5>`+(fbk("settlements")?langRows(["fr","en","nl","sv","es"],"dot"):liveRows("settlements","dot")));
+  if(on("missions")) rows.push(`<h5>Missions</h5><div><span style="color:#8A5410;font-weight:900;width:16px;text-align:center">+</span>Spanish mission (1769–1823)</div>`);
+  if(on("mining")) rows.push(`<h5>Mining towns</h5>`+(fbk("mining")?langRows(["en","es","am","fr","other"],"dia"):`<div><span class="sw dia" style="background:#B33A3A"></span>Gold Rush mining town</div>`));
+  if(on("trinidad")) rows.push(`<h5>Trinidad toponyms</h5>`+(fbk("trinidad")?langRows(["es","fr","en","am","sa"],"dot"):liveRows("trinidad","dot")));
+  if(on("claims")) rows.push(`<h5>European claims, c. ${fbk("claims")?"1750":"1700"}</h5>`+(fbk("claims")?langRows(["es","pt","fr","en","nl","dk"],"sq")+`<div class="hint" style="margin-top:4px">Islands shown as dots; areas generalized.</div>`:liveRows("claims","sq")));
+  L.innerHTML=rows.join("");
+}
+function clearGame(){ if(map.layers.game) map.layers.game.removeAll(); map.clickHandler=null; map.onNoteOpen=null; banner(""); }
+
+/* =====================================================================
+   SECTIONS
+   ===================================================================== */
+const missionEl=document.getElementById("mission");
+function h(html){ const t=document.createElement("template"); t.innerHTML=html.trim(); return t.content.firstElementChild; }
+function fb(el,ok,text){ el.className="feedback "+(ok?"good":"bad"); el.innerHTML=text; }
+
+function mcq(container,{id,points,question,choices,correct,explain}){
+  const card=h(`<div class="task"><span class="pts">${points} pts</span><h3>${question}</h3><div class="choices"></div><div class="feedback" hidden></div></div>`);
+  const ch=card.querySelector(".choices"), f=card.querySelector(".feedback");
+  const done=taskDone(id);
+  choices.forEach((c,i)=>{
+    const b=h(`<button type="button">${c}</button>`);
+    if(done){ b.disabled=true; if(i===correct) b.classList.add("correct"); }
+    b.addEventListener("click",()=>{
+      const ok=i===correct;
+      ch.querySelectorAll("button").forEach(x=>x.disabled=true);
+      b.classList.add(ok?"correct":"wrong"); if(!ok) ch.querySelectorAll("button")[correct].classList.add("correct");
+      f.hidden=false; fb(f,ok,(ok?"Correct. ":"Not quite. ")+explain);
+      if(ok){ state.streak++; markTask(id,points+(state.streak>=3?5:0),state.streak>=3?"points (streak bonus)":"points"); }
+      else { state.streak=0; markTask(id,Math.max(2,Math.floor(points/3)),"points for trying"); }
+      state.answers[id]=choices[i]; save();
+    });
+    ch.appendChild(b);
+  });
+  if(done){ f.hidden=false; fb(f,true,"Already answered. "+explain); }
+  container.appendChild(card); return card;
+}
+
+function multiSelect(container,{id,points,question,choices,correct,explain}){
+  const card=h(`<div class="task"><span class="pts">${points} pts</span><h3>${question}</h3><p class="hint">Select all that apply, then check.</p><div class="choices"></div><button class="primary" type="button">Check answer</button><div class="feedback" hidden></div></div>`);
+  const ch=card.querySelector(".choices"), f=card.querySelector(".feedback"), btn=card.querySelector("button.primary");
+  choices.forEach((c,i)=>ch.appendChild(h(`<label><input type="checkbox" value="${i}"> <span>${c}</span></label>`)));
+  if(taskDone(id)){ btn.disabled=true; f.hidden=false; fb(f,true,"Already answered. "+explain); ch.querySelectorAll("input").forEach(x=>{x.disabled=true;x.checked=correct.includes(+x.value);}); }
+  btn.addEventListener("click",()=>{
+    const picked=[...ch.querySelectorAll("input:checked")].map(x=>+x.value);
+    const right=picked.filter(p=>correct.includes(p)).length, wrong=picked.length-right;
+    const ok=right===correct.length&&wrong===0;
+    btn.disabled=true; ch.querySelectorAll("input").forEach(x=>x.disabled=true);
+    f.hidden=false;
+    fb(f,ok,(ok?"Correct. ":`You found ${right} of ${correct.length}${wrong?` and picked ${wrong} that did not fit`:""}. `)+explain);
+    markTask(id,ok?points:Math.max(2,Math.round(points*right/correct.length)-wrong*2),"points");
+    state.answers[id]=picked.map(p=>choices[p]); save();
+  });
+  container.appendChild(card); return card;
+}
+
+// Name detective: classify a run of place names by language of origin
+function detective(container,{id,deck,langs,title,intro}){
+  const per=3, total=deck.length*per;
+  const card=h(`<div class="task"><span class="pts">up to ${total} pts</span><h3>${title||"Name detective"}</h3><p class="hint">${intro||"Look for each name on the map, then choose its language of origin."} ${per} points per correct name.</p><div id="det"></div></div>`);
+  container.appendChild(card);
+  const area=card.querySelector("#det");
+  const prog=state.answers[id]||{index:0,earned:0,log:[]};
+  function render(){
+    area.innerHTML="";
+    if(prog.index>=deck.length){
+      area.appendChild(h(`<div class="feedback good">Detective work complete: ${prog.earned} of ${total} points.</div>`));
+      if(!taskDone(id)){ state.tasks[id]=true; save(); updateFinishBlock(); renderProgress(); }
+      return;
+    }
+    const item=deck[prog.index];
+    area.appendChild(h(`<p><b>${prog.index+1} of ${deck.length}:</b> What is the language of origin of <b>${item.n}</b>?</p>`));
+    const ch=h(`<div class="choices inline"></div>`);
+    langs.forEach(k=>{
+      const b=h(`<button type="button">${LANG[k].label.replace(" (Indigenous)","")}</button>`);
+      b.addEventListener("click",()=>{
+        const ok=k===item.lang;
+        ch.querySelectorAll("button").forEach(x=>x.disabled=true);
+        b.classList.add(ok?"correct":"wrong");
+        if(!ok){ const c=[...ch.querySelectorAll("button")][langs.indexOf(item.lang)]; if(c) c.classList.add("correct"); }
+        const pts=ok?per:0; prog.earned+=pts; prog.log.push({n:item.n,ok});
+        if(ok){ state.streak++; award(pts+(state.streak>=3?2:0),state.streak>=3?"points (streak)":"points"); } else state.streak=0;
+        state.answers[id]=prog; save();
+        area.appendChild(h(`<div class="feedback ${ok?"good":"bad"}">${ok?"Correct.":"Not quite."} <span class="chip ${["fr","en","es","am"].includes(item.lang)?item.lang:"other"}">${LANG[item.lang].label}</span> ${item.why}</div>`));
+        const next=h(`<button class="primary" type="button" style="margin-top:10px">${prog.index+1<deck.length?"Next name":"Finish"}</button>`);
+        next.addEventListener("click",()=>{ prog.index++; state.answers[id]=prog; save(); render(); });
+        area.appendChild(next);
+      });
+      ch.appendChild(b);
+    });
+    area.appendChild(ch);
+  }
+  render();
+}
+
+// Map task: click a feature of a given layer that satisfies a test
+function clickTask(container,{id,points,title,text,layer,test,success,failText,bannerText}){
+  const card=h(`<div class="task"><span class="pts">${points} pts</span><h3>${title}</h3><p>${text}</p><div class="feedback" hidden></div></div>`);
+  const f=card.querySelector(".feedback");
+  container.appendChild(card);
+  if(taskDone(id)){ f.hidden=false; fb(f,true,"Done. "+(state.answers[id]||"")); return card; }
+  if(map.failed){ f.hidden=false; fb(f,false,"The map is not available, so this task is skipped."); state.tasks[id]=true; save(); return card; }
+  if(!map.ready){ f.hidden=false; f.className="feedback"; f.textContent="Waiting for the map to load…"; return card; }
+  banner(bannerText||`<b>Map task:</b> ${title}`);
+  map.clickHandler=async(ev)=>{
+    const hit=await map.view.hitTest(ev,{include:map.layers[layer]});
+    const g=hit.results.find(r=>r.graphic&&r.graphic.attributes&&nameOf(r.graphic.attributes));
+    if(!g) return;
+    const a=g.graphic.attributes; f.hidden=false;
+    if(test(a)){ const msg=success(a); fb(f,true,msg); state.answers[id]=msg.replace(/<[^>]+>/g,""); markTask(id,points,"points"); banner(""); map.clickHandler=null; renderProgress(); }
+    else fb(f,false,failText(a));
+  };
+  return card;
+}
+
+// Map task: open specific map notes
+function noteTask(container,{id,points,noteIds,title,text}){
+  const card=h(`<div class="task"><span class="pts">${points} pts</span><h3>${title}</h3><p>${text}</p><ul class="steps"></ul><div class="feedback" hidden></div></div>`);
+  const ul=card.querySelector(".steps"), f=card.querySelector(".feedback");
+  const opened=state.answers[id]||{};
+  function draw(){ ul.innerHTML=""; noteIds.forEach(n=>{ const note=NOTES.find(x=>x.id===n); ul.appendChild(h(`<li class="${opened[n]?"done":"active"}">Open the <b>${note.title}</b> note${opened[n]?" — read":""}</li>`)); }); }
+  draw(); container.appendChild(card);
+  if(taskDone(id)){ f.hidden=false; fb(f,true,noteIds.every(n=>opened[n])?"Done. Notes read.":"Done (map task skipped)."); return card; }
+  if(map.failed){ f.hidden=false; fb(f,false,"The map is not available, so this task is skipped. The note text is summarised in the questions below."); state.tasks[id]=true; save(); return card; }
+  if(!map.ready){ f.hidden=false; f.className="feedback"; f.textContent="Waiting for the map to load…"; return card; }
+  banner("<b>Click the white square notes</b> on the map to read them.");
+  map.onNoteOpen=(nid)=>{
+    if(!noteIds.includes(nid)||opened[nid]) return;
+    opened[nid]=true; state.answers[id]=opened; save(); draw(); award(Math.floor(points/noteIds.length),"points");
+    if(noteIds.every(n=>opened[n])){ state.tasks[id]=true; save(); f.hidden=false; fb(f,true,"Done. Notes read."); banner(""); updateFinishBlock(); renderProgress(); }
+  };
+  return card;
+}
+
+function renderMission(){
+  renderProgress(); renderBadges();
+  missionEl.innerHTML=""; clearGame();
+  ({ask:sectionAsk,acquire:sectionAcquire,explore:sectionExplore,analyze:sectionAnalyze,act:sectionAct})[state.mission]();
+  missionEl.scrollTop=0;
+}
+function finishBlock(container,missionId,nextId,requiredTasks){
+  missionEl._finish={container,missionId,nextId,requiredTasks};
+  const wrap=h(`<div class="task" id="finishBlock"></div>`);
+  container.appendChild(wrap); updateFinishBlock();
+}
+function updateFinishBlock(){
+  const fbk=missionEl._finish, wrap=document.getElementById("finishBlock"); if(!fbk||!wrap) return;
+  const {missionId,nextId,requiredTasks}=fbk;
+  const allDone=requiredTasks.every(taskDone);
+  wrap.style.borderColor=allDone?"var(--ok)":"var(--rule)";
+  wrap.innerHTML=`<h3>${allDone?"Section complete":"Finish every task to unlock the next section"}</h3><p class="hint">${requiredTasks.filter(taskDone).length} of ${requiredTasks.length} tasks done.</p><div class="row"></div>`;
+  if(allDone){
+    earnBadge(missionId);
+    if(nextId){ const b=h(`<button class="primary" type="button">Continue to ${MISSION_TITLES[nextId]}</button>`); b.addEventListener("click",()=>{state.mission=nextId;save();renderMission();}); wrap.querySelector(".row").appendChild(b); }
+  }
+}
+function setupLayers(on){ allLayers(false); on.forEach(n=>setLayer(n,true)); }
+
+/* ---------- 1. ASK: What is a toponym? ---------- */
+function sectionAsk(){
+  const c=missionEl;
+  c.appendChild(h(`<h2>Ask</h2>`));
+  c.appendChild(h(`<p class="question-head">What is a toponym?</p>`));
+  c.appendChild(h(`<div class="callout"><b>Toponymy</b> is the study of place names (toponyms). A name can tell you who arrived, what language they spoke, what they believed, and what they found. You will now take a tour of place names in the Americas.</div>`));
+  setupLayers(["notes"]); goBookmark("Americas (start)");
+
+  noteTask(c,{id:"askNotes",points:10,noteIds:["america","pacific"],title:"Map task: read two map notes",
+    text:"Open the note inside North America (in North Dakota) and the note off the west coast of North America."});
+
+  mcq(c,{id:"askAmerica",points:10,question:"Who was North America named after, and why?",
+    choices:["Christopher Columbus, because he reached the islands first","Amerigo Vespucci, the first explorer to identify the New World as new continents rather than Asia","King Ferdinand of Spain, who paid for the voyages","The Amerindian peoples who already lived there"],
+    correct:1,explain:"The 1507 Waldseemüller map printed 'America' in honour of Amerigo Vespucci, who argued that these lands were a separate 'New World'."});
+  mcq(c,{id:"askPacific",points:10,question:"What is the language of origin and meaning of the name Pacific?",
+    choices:["Spanish — 'peaceful'","Latin — 'wide'","Portuguese — 'western'","Nahuatl — 'great water'"],
+    correct:0,explain:"Magellan's crew called it Mar Pacífico, 'peaceful sea', after the calm waters they met in 1520."});
+  mcq(c,{id:"askDef",points:5,question:"Which of these is a toponym?",
+    choices:["A person's surname","The name of a place, such as Québec or Los Angeles","The name of a language","A unit of distance"],
+    correct:1,explain:"Toponyms are place names; toponymy studies their origins and meanings."});
+  finishBlock(c,"ask","acquire",["askNotes","askAmerica","askPacific","askDef"]);
+}
+
+/* ---------- 2. ACQUIRE: What is the toponymy of the East Coast? ---------- */
+function sectionAcquire(){
+  const c=missionEl;
+  c.appendChild(h(`<h2>Acquire</h2>`));
+  c.appendChild(h(`<p class="question-head">What is the toponymy of the East Coast?</p>`));
+  setupLayers(["notes"]); goBookmark("Eastern Canada");
+  c.appendChild(h(`<p>The map is at the <b>Eastern Canada</b> bookmark. Zoom in and read the place names on the basemap along the St. Lawrence River and the Maritime provinces.</p>`));
+
+  detective(c,{id:"acqDetective",deck:DETECTIVE.canada,langs:["fr","en","am"],title:"Name detective: Eastern Canada",intro:"Find each name on the basemap (zoom in if needed), then pick its language of origin."});
+
+  mcq(c,{id:"acqLangs",points:10,question:"Which languages were used for place names in Eastern Canada?",
+    choices:["French and English","Spanish and Portuguese","Dutch and German","Only Indigenous languages"],
+    correct:0,explain:"French names line the St. Lawrence (Trois-Rivières, Rivière-du-Loup) while English names dominate the Maritimes and Ontario (Halifax, Kingston, Fredericton); Indigenous names such as Québec and Ottawa survive too."});
+  mcq(c,{id:"acqTraits",points:10,question:"Besides language, what other cultural trait strongly influenced these place names?",
+    choices:["Religion — many places are named for saints (Saint-Jean, Sainte-Anne, Saint-Hyacinthe)","Sports — many places are named for hockey teams","Technology — many places are named for inventions","Music — many places are named for composers"],
+    correct:0,explain:"Roman Catholic French settlers named hundreds of parishes and towns for saints — religion written on the map."});
+
+  const sub=h(`<div class="callout"><b>Next:</b> select the <b>East Coast</b> bookmark and turn on the <b>Settlements – 1655</b> layer, then open the legend (bottom left).</div>`);
+  c.appendChild(sub);
+  const b1=h(`<div class="row" style="margin:-4px 0 14px"><button class="secondary" type="button">Go to East Coast + show Settlements – 1655</button></div>`);
+  b1.querySelector("button").addEventListener("click",()=>{ goBookmark("East Coast"); setLayer("settlements",true); markTask("acqLayer",5,"points"); });
+  c.appendChild(b1);
+  if(map.failed&&!taskDone("acqLayer")){ state.tasks.acqLayer=true; save(); }
+
+  clickTask(c,{id:"acqClickFr",points:10,title:"Map task: click a French settlement",text:"With Settlements – 1655 on, click any blue (French) settlement point.",layer:"settlements",
+    test:a=>clsFrom(a)==="fr",success:a=>{const s=findByName(SETTLEMENTS,"name",nameOf(a)); return `<b>${esc(nameOf(a))}</b> (${esc(a.founded||a.YEAR||"")}) was French.${s?" "+s.note:""}`;},failText:a=>`${esc(nameOf(a))} was ${esc(rootLabel(a))}. Look for a blue point — French settlements cluster along the St. Lawrence.`,
+    bannerText:"<b>Map task:</b> click a French (blue) settlement."});
+
+  mcq(c,{id:"acqFrench",points:10,question:"Where were the French settlements concentrated in 1655?",
+    choices:["Along the St. Lawrence River and Québec","Around Chesapeake Bay","In Florida","Along the Hudson River"],
+    correct:0,explain:"Québec, Trois-Rivières, Ville-Marie (Montréal) and Tadoussac all sit on the St. Lawrence — the fur-trade highway into New France."});
+  mcq(c,{id:"acqEnglish",points:10,question:"Where were the English settlements?",
+    choices:["Along the eastern United States coast and in eastern Canada (Newfoundland)","Along the Mississippi River","On the Pacific coast","Around the Great Lakes"],
+    correct:0,explain:"English towns ran from Newfoundland (Cupids, Ferryland) through New England to the Chesapeake (Jamestown, St. Mary's City). The Dutch held the Hudson and the Swedes the Delaware."});
+  finishBlock(c,"acquire","explore",["acqDetective","acqLangs","acqTraits","acqLayer","acqClickFr","acqFrench","acqEnglish"]);
+}
+
+/* ---------- 3. EXPLORE: California toponyms ---------- */
+function sectionExplore(){
+  const c=missionEl;
+  c.appendChild(h(`<h2>Explore</h2>`));
+  c.appendChild(h(`<p class="question-head">What major migrations helped define California toponyms?</p>`));
+  setupLayers([]); goBookmark("California-Local");
+  c.appendChild(h(`<p>The map is at the <b>California-Local</b> bookmark. Read the town names along the coast and in the Central Valley.</p>`));
+
+  detective(c,{id:"expDetective",deck:DETECTIVE.california,langs:["es","en","am","other"],title:"Name detective: California"});
+
+  mcq(c,{id:"expLangs",points:10,question:"Which languages were used for California place names?",
+    choices:["Spanish and English","French and English","Portuguese and Spanish","Russian and English"],
+    correct:0,explain:"Spanish colonial names (Los Angeles, San José, Sacramento) mix with English names from the Gold Rush and railroad era (Bakersfield, Stockton, Redding), over a layer of Indigenous names (Tahoe, Yosemite, Malibu)."});
+  mcq(c,{id:"expFactors",points:10,question:"What other cultural factors influenced California place names?",
+    choices:["Religion and land use","Sports and entertainment","Warfare and forts only","Weather and climate only"],
+    correct:0,explain:"Religion: saints and sacraments (San Francisco, Sacramento, Merced). Land use: what people found or grew there (Oakland, Bakersfield, Orange, Walnut Creek, Grass Valley)."});
+
+  const b1=h(`<div class="row" style="margin:0 0 14px"><button class="secondary" type="button">Turn on Missions</button></div>`);
+  b1.querySelector("button").addEventListener("click",()=>{ setLayer("missions",true); markTask("expMissionsOn",5,"points"); });
+  c.appendChild(b1);
+  if(map.failed&&!taskDone("expMissionsOn")){ state.tasks.expMissionsOn=true; save(); }
+
+  clickTask(c,{id:"expClickMission",points:10,title:"Map task: click a mission",text:"Turn on the Missions layer and click any mission (brown cross) to read what its name means.",layer:"missions",
+    test:a=>true,success:a=>{const m=findByName(MISSIONS,"n",nameOf(a)); return `<b>${esc(nameOf(a))}</b>, founded ${esc(a.year||a.DATE||"")}${m?`, is named for ${m.m}`:""}.`;},failText:a=>"Click a mission symbol.",bannerText:"<b>Map task:</b> click a mission (brown cross)."});
+
+  mcq(c,{id:"expWhyMissions",points:10,question:"Why did the Spanish build missions in California?",
+    choices:["For religious reasons — to convert Indigenous peoples to Christianity (and to anchor Spain's claim)","To mine gold","To trade furs with the Russians","To grow cotton for export"],
+    correct:0,explain:"Franciscan missions (1769–1823) were religious outposts; every one is named for a saint or a holy figure, so the toponyms themselves record that purpose."});
+  mcq(c,{id:"expPattern",points:10,question:"What spatial pattern do the missions form?",
+    choices:["A chain along the coast, roughly a day's ride apart","A cluster in the Sierra Nevada","A line along the Nevada border","A ring around the Central Valley"],
+    correct:0,explain:"The 21 missions follow El Camino Real along the coast from San Diego to Sonoma."});
+
+  const b2=h(`<div class="callout"><b>Next:</b> select the <b>California-Regional</b> bookmark and turn on <b>Mining towns</b>.</div>`);
+  c.appendChild(b2);
+  const b3=h(`<div class="row" style="margin:-4px 0 14px"><button class="secondary" type="button">Go to California-Regional + show Mining towns</button></div>`);
+  b3.querySelector("button").addEventListener("click",()=>{ goBookmark("California-Regional"); setLayer("mining",true); setLayer("missions",true); markTask("expMiningOn",5,"points"); });
+  c.appendChild(b3);
+  if(map.failed&&!taskDone("expMiningOn")){ state.tasks.expMiningOn=true; save(); }
+
+  mcq(c,{id:"expDistrib",points:10,question:"How were missions and mining settlements distributed?",
+    choices:["Missions along the coast; mines inland, near the mountains","Both along the coast","Both in the Central Valley","Missions in the mountains; mines on the coast"],
+    correct:0,explain:"Missions hug the coast; the Gold Rush towns (1848 onward) sit inland in the Sierra Nevada foothills — the Mother Lode — a second migration that added English, and more Spanish, names."});
+  finishBlock(c,"explore","analyze",["expDetective","expLangs","expFactors","expMissionsOn","expClickMission","expWhyMissions","expPattern","expMiningOn","expDistrib"]);
+}
+
+/* ---------- 4. ANALYZE: Trinidad compared with Canada and California ---------- */
+function sectionAnalyze(){
+  const c=missionEl;
+  c.appendChild(h(`<h2>Analyze</h2>`));
+  c.appendChild(h(`<p class="question-head">How does Trinidad's toponymy compare to Canada and California?</p>`));
+  setupLayers(["notes"]); goBookmark("West Indies");
+  c.appendChild(h(`<p>The map is at the <b>West Indies</b> bookmark. Open the map note near Cuba.</p>`));
+
+  noteTask(c,{id:"anaNote",points:5,noteIds:["westindies"],title:"Map task: read the West Indies note",text:"Click the note near Cuba."});
+  mcq(c,{id:"anaWhy",points:10,question:"Why is this area called the West Indies?",
+    choices:["Columbus thought he had reached the Indies (Asia)","The islands lie west of India","Indian Ocean currents reach the islands","A Spanish king named them for his western fleet"],
+    correct:0,explain:"Columbus believed he had reached Asia's Indies; the islands kept the mistaken name, with 'West' added once the error was clear."});
+
+  detective(c,{id:"anaDetective",deck:DETECTIVE.westindies,langs:["es","am","pt"],title:"Name detective: West Indies"});
+
+  const b1=h(`<div class="callout"><b>Next:</b> select the <b>Trinidad</b> bookmark and turn on <b>Trinidad toponyms</b>. Check the legend to see what the colours mean.</div>`);
+  c.appendChild(b1);
+  const b2=h(`<div class="row" style="margin:-4px 0 14px"><button class="secondary" type="button">Go to Trinidad + show Trinidad toponyms</button></div>`);
+  b2.querySelector("button").addEventListener("click",()=>{ goBookmark("Trinidad"); setLayer("trinidad",true); setLayer("notes",false); markTask("anaLayer",5,"points"); });
+  c.appendChild(b2);
+  if(map.failed&&!taskDone("anaLayer")){ state.tasks.anaLayer=true; save(); }
+
+  clickTask(c,{id:"anaClickFr",points:10,title:"Map task: click a French-origin name in Trinidad",text:"Use the legend colours. Click a place whose name is French.",layer:"trinidad",
+    test:a=>clsFrom(a)==="fr",success:a=>{const t=findByName(TRINIDAD,"n",nameOf(a)); return `<b>${esc(nameOf(a))}</b> is French${t?": "+t.m:"."}`;},failText:a=>`${esc(nameOf(a))} is ${esc(rootLabel(a))}. Try a blue point (French names cluster on the north coast).`,
+    bannerText:"<b>Map task:</b> click a French (blue) place name."});
+
+  multiSelect(c,{id:"anaLangs",points:15,question:"What were the dominant languages used for Trinidad's place names?",
+    choices:["Spanish","French","English","Amerindian (Indigenous)","Portuguese","Dutch"],
+    correct:[0,1,2,3],explain:"Spanish (San Fernando, Sangre Grande), French (Blanchisseuse, Sans Souci), English (Princes Town, Scarborough) and Amerindian (Arima, Chaguanas, Couva) names all survive — plus later South Asian names such as Fyzabad."});
+  mcq(c,{id:"anaSuggest",points:10,question:"What does the number of languages suggest about Trinidad?",
+    choices:["Trinidad was a contested land that changed hands between influential countries several times","Trinidad was never colonized","Trinidad's people invented several languages","Trinidad was settled only once, by Spain"],
+    correct:0,explain:"Spain claimed Trinidad in 1498, invited French planters in 1783, and lost it to Britain in 1797; each wave left names, on top of the Indigenous ones already there."});
+  mcq(c,{id:"anaCompare",points:10,question:"Compared with Eastern Canada and California, Trinidad's toponymy is…",
+    choices:["More mixed: four or more source languages on one small island, versus two main colonial languages in each of the other regions","Identical: only English names","Simpler: only one source language","Older: all names are Indigenous"],
+    correct:0,explain:"Canada shows mainly French and English (plus Indigenous); California mainly Spanish and English (plus Indigenous); Trinidad layers Spanish, French, English, Amerindian and South Asian names in a much smaller space."});
+  finishBlock(c,"analyze","act",["anaNote","anaWhy","anaDetective","anaLayer","anaClickFr","anaLangs","anaSuggest","anaCompare"]);
+}
+
+/* ---------- 5. ACT: colonization and toponyms ---------- */
+function sectionAct(){
+  const c=missionEl;
+  c.appendChild(h(`<h2>Act</h2>`));
+  c.appendChild(h(`<p class="question-head">What is the relationship between colonization and toponyms?</p>`));
+  setupLayers(["claims"]); goBookmark("European Claims");
+  c.appendChild(h(`<p>The map is at the <b>European Claims</b> bookmark with the <b>Claims</b> layer on (European claims about 1700). Compare the coloured claims with the place names you have studied.</p>`));
+
+  clickTask(c,{id:"actClick",points:10,title:"Map task: click a claim",text:"Click any coloured area or island dot to see which European power claimed it.",layer:"claims",
+    test:a=>true,success:a=>`<b>${esc(nameOf(a))}</b> — claimed by ${esc(rootLabel(a))}.`,failText:a=>"Click a coloured claim.",bannerText:"<b>Map task:</b> click a coloured claim."});
+
+  multiSelect(c,{id:"actTied",points:15,question:"How are regional place names in the Americas tied to colonization? Select every true statement.",
+    choices:["Eastern Canada has French toponyms because France claimed the St. Lawrence","The American Southwest and California have Spanish toponyms because they were part of New Spain","The West Indies mix French, Dutch, Spanish and British names because the islands were claimed by several powers","Brazil has Portuguese toponyms because Portugal claimed it","Every place in the Americas has an English name"],
+    correct:[0,1,2,3],explain:"Where a colonial power claimed land, its language named the places — and where claims changed hands, names piled up in layers."});
+
+  const saved=state.answers.act||{};
+  const card=h(`<div class="task"><span class="pts">25 pts</span><h3>Make your case</h3>
+    <p>Besides toponyms, how do colonization and these early claims affect the world today? Think about religion, language, architecture, law, food, borders or sports. There is no single right answer; points are for a complete, evidence-based response.</p>
+    <label for="actText"><b>Write your response</b> with at least two examples from the map (at least 50 words).</label>
+    <textarea id="actText" placeholder="Colonization still shapes the world today because ..."></textarea>
+    <p class="hint" id="wc">0 words</p>
+    <div class="row"><button class="primary" type="button" id="actSubmit">Log response</button></div>
+    <div class="feedback" hidden></div></div>`);
+  const ta=card.querySelector("#actText"), wc=card.querySelector("#wc"), f=card.querySelector(".feedback"), sub=card.querySelector("#actSubmit");
+  ta.value=saved.text||"";
+  const words=()=>ta.value.trim().split(/\s+/).filter(Boolean).length;
+  const updWc=()=>wc.textContent=`${words()} words`; updWc(); ta.addEventListener("input",updWc);
+  if(taskDone("act")){ ta.disabled=true; sub.disabled=true; f.hidden=false; fb(f,true,"Response logged."); }
+  sub.addEventListener("click",()=>{
+    f.hidden=false;
+    if(words()<50){ fb(f,false,`Your response has ${words()} words. Add more examples to reach 50.`); return; }
+    state.answers.act={text:ta.value}; markTask("act",25,"points"); save();
+    fb(f,true,"Response logged."); renderMission();
+  });
+  c.appendChild(card);
+
+  finishBlock(c,"act",null,["actClick","actTied","act"]);
+  if(taskDone("act")){
+    const s=h(`<div class="summary-box"><h3 style="font-family:var(--serif);margin:0 0 8px">Your field notes</h3><dl>
+      <dt>Score</dt><dd>${state.score} points</dd>
+      <dt>Badges</dt><dd>${state.badges.length} of ${BADGES.length}</dd>
+      <dt>Name detective</dt><dd>${["acqDetective","expDetective","anaDetective"].reduce((n,k)=>n+((state.answers[k]||{}).earned||0),0)} points</dd></dl>
+      <div class="row" style="margin-top:12px"><button class="primary" type="button" id="dl">Download my answers</button><button class="secondary" type="button" id="cp">Copy to clipboard</button></div></div>`);
+    c.appendChild(s);
+    s.querySelector("#dl").addEventListener("click",()=>{ const blob=new Blob([buildReport()],{type:"text/plain"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="toponymy-geoinquiry-answers.txt"; a.click(); });
+    s.querySelector("#cp").addEventListener("click",()=>{ navigator.clipboard.writeText(buildReport()).then(()=>toast("Copied")).catch(()=>toast("Copy failed; use Download")); });
+  }
+}
+function buildReport(){
+  const a=state.answers, L=[];
+  L.push("You Claim It, You Name It: Toponymy — student answers");
+  L.push("Submitted: "+new Date().toLocaleString());
+  L.push("Score: "+state.score+" | Badges: "+state.badges.map(b=>BADGES.find(x=>x.id===b).name).join(", "));
+  L.push("");
+  ["askAmerica","askPacific","askDef","acqLangs","acqTraits","acqFrench","acqEnglish","expLangs","expFactors","expWhyMissions","expPattern","expDistrib","anaWhy","anaSuggest","anaCompare"].forEach(k=>{ if(a[k]) L.push(k+": "+a[k]); });
+  ["anaLangs","actTied"].forEach(k=>{ if(a[k]) L.push(k+": "+a[k].join(" | ")); });
+  ["acqDetective","expDetective","anaDetective"].forEach(k=>{ if(a[k]) L.push(k+": "+a[k].earned+" pts; "+a[k].log.map(x=>x.n+(x.ok?" ✓":" ✗")).join(", ")); });
+  ["acqClickFr","expClickMission","anaClickFr","actClick"].forEach(k=>{ if(a[k]) L.push(k+": "+a[k]); });
+  if(a.act){ L.push(""); L.push("Act response:"); L.push(a.act.text); }
+  return L.join("\n");
+}
+
+/* =====================================================================
+   MODES
+   ===================================================================== */
+function setMode(mode){
+  const explore=mode==="explore";
+  document.body.classList.toggle("mode-explore",explore);
+  document.getElementById("modeMission").setAttribute("aria-pressed",String(!explore));
+  document.getElementById("modeExplore").setAttribute("aria-pressed",String(explore));
+  if(explore){ clearGame(); allLayers(true); }
+  else renderMission();
+}
+document.getElementById("modeMission").addEventListener("click",()=>setMode("mission"));
+document.getElementById("modeExplore").addEventListener("click",()=>setMode("explore"));
+
+/* =====================================================================
+   MODALS
+   ===================================================================== */
+const modalBack=document.getElementById("modalBack"), modalBody=document.getElementById("modalBody");
+function openModal(html){ modalBody.innerHTML=`<button class="secondary close" type="button">Close</button>`+html; modalBack.classList.add("show"); modalBody.querySelector(".close").focus(); }
+modalBack.addEventListener("click",e=>{ if(e.target===modalBack||e.target.classList.contains("close")) modalBack.classList.remove("show"); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") modalBack.classList.remove("show"); });
+
+document.getElementById("btnHelp").addEventListener("click",()=>openModal(`
+  <h2>How to play</h2>
+  <p>You work through five sections in the same order as the GeoInquiry lesson: Ask, Acquire, Explore, Analyze, Act. Each section unlocks the next once every task is done. Earn points for correct answers (a streak of three correct answers adds a bonus) and a badge for each section.</p>
+  <h3>Map controls</h3>
+  <ul>
+    <li>The app has two modes. GeoInquiry mode (the default) walks you through the five sections. Explore mode hides the GeoInquiry panel and scoring and turns on every layer so you can use the map freely; switch with the GeoInquiry / Explore buttons in the header.</li>
+    <li>Bookmarks (top right of the map) jump to the places named in the lesson. Layer buttons turn map layers on and off; the legend (bottom left) explains the colours.</li>
+    <li>Click any note, settlement, mission, mining town, Trinidad place or claim to open its details. Zoom in to read place names on the basemap.</li>
+    <li>Your progress saves in this browser. Use Reset to start over.</li>
+  </ul>`));
+
+document.getElementById("btnSources").addEventListener("click",()=>openModal(`
+  <h2>Sources and data</h2>
+  <h3>Map layers</h3>
+  <table>
+    <tr><th>Layer</th><th>Service</th><th>Notes</th></tr>
+    <tr><td>Basemap</td><td>Esri "topo-vector"</td><td>World Topographic Map, loaded through the ArcGIS Maps SDK for JavaScript 4.30. Its labels supply the place names students read.</td></tr>
+    <tr><td>Map notes</td><td>Built into this app</td><td>The three notes named in the lesson (America, Pacific, West Indies), placed where the original web map placed them, plus seven extra toponym stories written from the references below.</td></tr>
+    <tr><td>Settlements – 1655</td><td><code>${SERVICES.settlements.url}</code></td><td>From the GeoInquiry web map (fields NAME, YEAR, ROOT). Coloured here by ROOT language.</td></tr>
+    <tr><td>Missions</td><td><code>${SERVICES.missions.url}</code></td><td>From the GeoInquiry web map (NAME, NAME_NOW, DATE, FOUNDER). Popups add the saint each mission is named for.</td></tr>
+    <tr><td>Mining towns</td><td><code>${SERVICES.mining.url}</code></td><td>From the GeoInquiry web map (NAME, YEAR). Popups add the name's language of origin where known.</td></tr>
+    <tr><td>Trinidad toponyms</td><td><code>${SERVICES.trinidad.url}</code></td><td>From the GeoInquiry web map (NAME, ROOT). Coloured by ROOT language.</td></tr>
+    <tr><td>Claims</td><td><code>${SERVICES.claims.url}</code></td><td>From the GeoInquiry web map: European colonizer land claims, about 1700 (NAME, UNDIS_COLONIZER). Coloured by colonizer.</td></tr>
+  </table>
+  <p>If any of these services stops responding, the app automatically swaps in a built-in substitute layer with the same name (29 settlements by 1655, the 21 California missions, 26 Gold Rush mining towns, 58 Trinidad and Tobago toponyms, and generalized c. 1750 claims). The legend labels a substitute Claims layer "c. 1750" so you can tell which is showing.</p>
+  <h3>References</h3>
+  <ul>
+    <li>Esri GeoInquiries, "You claim it, you name it!" (Human Geography collection, Q1 2024) for the question sequence and answer key. Original web map: <a href="https://www.arcgis.com/home/webmap/viewer.html?webmap=e10d55e20f4943ae9e0d5c016c493c2b" target="_blank" rel="noopener">ArcGIS Online item e10d55e2…</a>.</li>
+    <li>Erwin G. Gudde, <i>California Place Names</i> (University of California Press); William Bright, <i>1500 California Place Names</i>.</li>
+    <li>Alan Rayburn, <i>Dictionary of Canadian Place Names</i> (Oxford University Press); Natural Resources Canada, Canadian Geographical Names Database.</li>
+    <li>Library of Congress, "Waldseemüller Map, 1507"; Antonio Pigafetta's account of Magellan's voyage (for Mar Pacífico).</li>
+    <li>Bridget Brereton, <i>A History of Modern Trinidad 1783–1962</i>; Government of Trinidad and Tobago, National Library and Information System (place-name notes).</li>
+  </ul>
+`));
+
+document.getElementById("btnTeacher").addEventListener("click",()=>openModal(`
+  <h2>Teacher notes</h2>
+  <p><a href="https://esriurl.com/geoinquiries" target="_blank" rel="noopener">GeoInquiries home</a></p>
+  <p>Aligned to the GeoInquiry outcomes: students identify and explain locations in the Americas where French, English and Spanish toponyms are present today, and explain why the root language of toponyms in North America varies from region to region. AP Human Geography CED: <b>PSO-3.D</b> (explain patterns and landscapes of language, religion, ethnicity and gender) and <b>SPS-1.A</b> (describe different ways that geographers define regions). Time: about 15–25 minutes.</p>
+  <h3>Things to know</h3>
+  <ul>
+    <li>The five lesson layers (Settlements – 1655, Missions, Mining Towns, Trinidad Toponyms, Claims) load live from the original GeoInquiry web map's ArcGIS Online services. If a service ever goes offline, the app swaps in a built-in substitute layer of the same name (the substitute Claims layer is a generalized schematic of claims about 1750 and is labelled so in the legend).</li>
+    <li>Place names on the basemap come from Esri's World Topographic Map; students must zoom in to read town names at the Eastern Canada and California bookmarks.</li>
+    <li>The map needs internet access to js.arcgis.com and arcgis.com. If your school filters those, the questions still run but map tasks are auto-skipped.</li>
+    <li>Scoring: 5–15 points per question, 3 points per name in the Name detective decks (plus streak bonuses), 10 points per map task, 25 for the final response. The Act section produces a downloadable text file students can turn in.</li>
+    <li>Explore mode turns on every layer and hides the panel for open exploration or a projector walkthrough.</li>
+  </ul>
+  <h3>Then try this</h3>
+  <ul>
+    <li>Use the Calculate Density tool in ArcGIS Online to analyze the distribution of Spanish missions or mining settlements.</li>
+    <li>Have students research the history of a mining settlement and create a StoryMaps tour explaining how the toponym reflects the history or geography of the place (e.g., French Gulch, Leadville).</li>
+    <li>Extension for this app: ask students to add three toponyms from your own community to the Name detective pattern — language, meaning, and what it reveals about who named it.</li>
+  </ul>
+  <h3>Text references</h3>
+  <ul>
+    <li><i>Human Geography</i> (McGraw Hill) – Chapter 7</li>
+    <li><i>The Cultural Landscape</i> (Pearson) – Chapters 5, 6</li>
+    <li><i>Human Geography: People, Place, and Culture</i> (Wiley) – Chapters 5, 6</li>
+  </ul>
+  <p style="margin-top:22px;border-top:1px solid var(--rule);padding-top:12px">Designed by <a href="https://tbaker.com" target="_blank" rel="noopener">Tom Baker</a></p>`));
+
+document.getElementById("btnReset").addEventListener("click",()=>{
+  if(!confirm("Reset all progress and start over?")) return;
+  state={score:0,badges:[],mission:"ask",done:{},answers:{},tasks:{},streak:0}; save(); setMode("mission");
+});
+
+/* ---------- boot ---------- */
+renderBadges(); renderProgress(); renderMission(); initMap();
+</script>
+</body>
+</html>
