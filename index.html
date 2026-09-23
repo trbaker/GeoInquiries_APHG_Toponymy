@@ -226,6 +226,9 @@ textarea{min-height:130px;resize:vertical}
   background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:4px;
   padding:2px 8px;font-size:.8rem;box-shadow:none;
 }
+.panel-body{padding:8px}
+.panel-body.collapsed{display:none}
+.bookmarks-panel select{width:100%;min-width:0;box-shadow:none}
 .layers-list{list-style:none;margin:0;padding:6px 8px}
 .layers-list.collapsed{display:none}
 .layers-list li label{
@@ -352,7 +355,10 @@ textarea{min-height:130px;resize:vertical}
     <div id="viewDiv"></div>
     <div class="map-banner" id="mapBanner"></div>
     <div class="maptools" id="mapTools">
-      <select id="bookmarks" aria-label="Bookmarks" hidden></select>
+      <div class="layers-panel bookmarks-panel" id="bookmarksPanel" hidden>
+        <div class="layers-head"><span>Bookmarks</span><button type="button" id="bookmarksToggle" aria-expanded="true" aria-controls="bookmarksBody">Hide</button></div>
+        <div class="panel-body" id="bookmarksBody"><select id="bookmarks" aria-label="Bookmarks"></select></div>
+      </div>
       <div class="layers-panel" id="layersPanel">
         <div class="layers-head"><span>Layers</span><button type="button" id="layersToggle" aria-expanded="true" aria-controls="layersList">Hide</button></div>
         <ul class="layers-list" id="layersList"></ul>
@@ -1126,7 +1132,10 @@ function wireMapTools(){
   const lg=$("legendToggle"), lbody=$("legend");
   lg.addEventListener("click",()=>{ const open=lbody.classList.toggle("collapsed")===false; lg.textContent=open?"Hide":"Show"; lg.setAttribute("aria-expanded",String(open)); });
   const sel=$("bookmarks");
-  if(BOOKMARKS.length){ sel.hidden=false; sel.innerHTML=`<option value="">Bookmarks…</option>`+BOOKMARKS.map((b,i)=>`<option value="${i}">${esc(b.name)}</option>`).join(""); sel.addEventListener("change",()=>{ if(sel.value!=="") goBookmark(BOOKMARKS[+sel.value].name); }); }
+  if(BOOKMARKS.length){ $("bookmarksPanel").hidden=false;
+    const bt=$("bookmarksToggle"), bb=$("bookmarksBody");
+    bt.addEventListener("click",()=>{ const open=bb.classList.toggle("collapsed")===false; bt.textContent=open?"Hide":"Show"; bt.setAttribute("aria-expanded",String(open)); });
+    sel.innerHTML=`<option value="">Select a bookmark…</option>`+BOOKMARKS.map((b,i)=>`<option value="${i}">${esc(b.name)}</option>`).join(""); sel.addEventListener("change",()=>{ if(sel.value!=="") goBookmark(BOOKMARKS[+sel.value].name); }); }
   const mb=$("btnMeasure"); if(MAPCFG.measure){ mb.hidden=false; mb.addEventListener("click",()=>toggleMeasure()); }
 }
 function toggleMeasure(force){
